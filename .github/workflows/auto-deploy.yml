@@ -10,7 +10,7 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v4
@@ -33,29 +33,18 @@ jobs:
     - name: Build
       run: npm run build
     
-    - name: Deploy to MCP Directory
-      run: |
-        # Copy built files to global MCP directory
-        Copy-Item -Path "build\*" -Destination "C:\mcp-servers\react-native-guide\" -Recurse -Force
-        
-        # Restart MCP server
-        claude mcp remove react-native-guide
-        claude mcp add react-native-guide node C:/mcp-servers/react-native-guide/build/index.js -s user
-        
-    - name: Verify Local Deployment
-      run: claude mcp list
-    
     - name: Check if version changed
       id: version-check
       run: |
-        $currentVersion = (Get-Content package.json | ConvertFrom-Json).version
-        $lastCommit = git log --oneline -1
-        if ($lastCommit -match "v?\d+\.\d+\.\d+") {
-          echo "version-changed=true" >> $env:GITHUB_OUTPUT
-          echo "new-version=$currentVersion" >> $env:GITHUB_OUTPUT
-        } else {
-          echo "version-changed=false" >> $env:GITHUB_OUTPUT
-        }
+        currentVersion=$(node -p "require('./package.json').version")
+        lastCommit=$(git log --oneline -1)
+        if [[ $lastCommit =~ v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+          echo "version-changed=true" >> $GITHUB_OUTPUT
+          echo "current-version=$currentVersion" >> $GITHUB_OUTPUT
+        else
+          echo "version-changed=false" >> $GITHUB_OUTPUT
+          echo "current-version=$currentVersion" >> $GITHUB_OUTPUT
+        fi
     
     - name: Auto-increment version
       if: steps.version-check.outputs.version-changed == 'false'
@@ -63,27 +52,34 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         npm version patch --no-git-tag-version
-        $newVersion = (Get-Content package.json | ConvertFrom-Json).version
+        newVersion=$(node -p "require('./package.json').version")
         git add package.json
         git commit -m "Auto-increment version to v$newVersion [skip ci]"
         git push
-        echo "new-version=$newVersion" >> $env:GITHUB_OUTPUT
+        echo "new-version=$newVersion" >> $GITHUB_OUTPUT
       id: auto-version
     
+    - name: Get final version
+      id: final-version
+      run: |
+        if [ "${{ steps.version-check.outputs.version-changed }}" = "true" ]; then
+          echo "version=${{ steps.version-check.outputs.current-version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${{ steps.auto-version.outputs.new-version }}" >> $GITHUB_OUTPUT
+        fi
+    
     - name: Publish to npm
-      if: always() && (steps.version-check.outputs.version-changed == 'true' || steps.auto-version.outputs.new-version)
+      if: always()
       run: npm publish --access public
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     
     - name: Create GitHub Release
-      if: always() && (steps.version-check.outputs.version-changed == 'true' || steps.auto-version.outputs.new-version)
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      if: always()
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: v${{ steps.version-check.outputs.new-version || steps.auto-version.outputs.new-version }}
-        release_name: Release v${{ steps.version-check.outputs.new-version || steps.auto-version.outputs.new-version }}
+        tag_name: v${{ steps.final-version.outputs.version }}
+        name: Release v${{ steps.final-version.outputs.version }}
         body: |
           ## What's Changed
           - Auto-deployed React Native MCP Server
