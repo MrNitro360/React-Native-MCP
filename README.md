@@ -5,15 +5,14 @@
 [![npm version](https://badge.fury.io/js/%40mrnitro360%2Freact-native-mcp-guide.svg)](https://badge.fury.io/js/%40mrnitro360%2Freact-native-mcp-guide)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Model Context Protocol](https://img.shields.io/badge/MCP-1.0.0-blue.svg)](https://modelcontextprotocol.io/)
-[![Auto-Deploy](https://github.com/MrNitro360/React-Native-MCP/actions/workflows/auto-deploy.yml/badge.svg)](https://github.com/MrNitro360/React-Native-MCP/actions/workflows/auto-deploy.yml)
 
-*Your AI-powered React Native development companion for enterprise-grade mobile applications*
+*Your AI-powered React Native development companion providing expert guidance, analysis, and package management*
 
-🔄 **Fully automated updates** - Every code change automatically publishes to npm with version management
+🔄 **Automated publishing available** - Ready for CI/CD integration with version management
 
 </div>
 
-A comprehensive Model Context Protocol server that provides expert React Native development guidance, security analysis, performance optimization, and best practices. Built for professional developers and enterprise teams who demand quality, security, and scalability.
+A Model Context Protocol server that provides React Native development guidance, component analysis, performance optimization, and comprehensive package management. Built to help developers maintain high-quality, secure, and well-optimized React Native applications.
 
 ## 🚀 Quick Start
 
@@ -79,70 +78,71 @@ You should see `react-native-guide` listed and connected.
 
 ## 🎯 Features
 
-### � Comprehensive Analysis Tools
+### 🔧 Analysis & Development Tools
 
-- **Codebase Analysis** - Full project analysis for security, performance, and quality
-- **Component Analysis** - Individual component or entire codebase evaluation  
-- **Performance Optimization** - Memory management, bundle size, rendering optimization
-- **Security Auditing** - Vulnerability detection, secret scanning, secure coding practices
-- **Code Quality Assessment** - Complexity analysis, refactoring suggestions, best practices
-- **Deprecated Feature Detection** - Outdated API identification and migration guidance
-- **Accessibility Compliance** - Screen reader support, inclusive design recommendations
-- **Testing Gap Analysis** - Test coverage evaluation and testing strategy suggestions
-- **Package & Dependency Auditing** - Version updates, security patches, migration paths
+- **Component Analysis** (`analyze_component`) - Analyze individual React Native components or entire codebases for best practices
+- **Performance Analysis** (`analyze_codebase_performance`) - Comprehensive performance analysis with focus areas like list rendering, navigation, animations, and memory usage
+- **Comprehensive Analysis** (`analyze_codebase_comprehensive`) - Full codebase analysis including performance, security, code quality, and accessibility
+- **Performance Optimization** (`optimize_performance`) - Get specific optimization suggestions for different performance scenarios
+- **Architecture Guidance** (`architecture_advice`) - Project structure and architecture recommendations
+- **Debugging Assistance** (`debug_issue`) - Platform-specific debugging guidance for common issues
 
-### � Package Management & Dependencies
+### 📦 Package Management & Dependencies
 
-- **Automatic Package Upgrades** - Check for outdated packages and provide upgrade recommendations
-- **Dependency Conflict Resolution** - Detect and resolve dependency tree conflicts
-- **Security Vulnerability Auditing** - Scan for security issues and provide automated fixes
-- **Package Migration Assistance** - Migrate deprecated packages to modern alternatives
-- **React Native Compatibility Checks** - Ensure packages work with current RN version
-- **Peer Dependency Management** - Resolve missing peer dependencies and version conflicts
+- **Package Upgrades** (`upgrade_packages`) - Automated package update checking with support for different update levels (patch, minor, major)
+- **Dependency Resolution** (`resolve_dependencies`) - Detect and resolve dependency conflicts and peer dependency issues
+- **Security Auditing** (`audit_packages`) - Comprehensive security vulnerability scanning with automated fixes
+- **Package Migration** (`migrate_packages`) - Migrate deprecated packages to modern alternatives
+- **Cross-Platform Support** - Works with npm, yarn, and pnpm package managers
 
-### 📚 Expert Resources
+### 📚 Resources & Guidance
 
-- **Official Documentation** - Complete React Native API references and guides
-- **Performance Optimization** - Advanced techniques for mobile app performance
-- **Platform-Specific Guides** - iOS and Android development best practices
-- **Architecture Patterns** - Scalable app structure and state management
-- **Security Best Practices** - Mobile app security guidelines and implementation
+- **Official Documentation** - Access to React Native API references and guides
+- **Best Practices Guide** - Comprehensive development best practices
+- **Performance Optimization Guides** - Advanced optimization techniques
+- **Security Guidelines** - Mobile app security recommendations
+- **Platform-Specific Resources** - iOS and Android development guidance
 
 ### 🎨 Intelligent Prompts
 
-- **Code Review Workflows** - Systematic component and architecture evaluation
-- **Performance Optimization** - Targeted performance improvement strategies  
-- **Architecture Design** - Scalable project structure planning
-- **Debugging Assistance** - Platform-specific troubleshooting guidance
-- **Migration Planning** - Version upgrades and library migration strategies
-- **Testing Strategies** - Comprehensive testing approach recommendations
+- **Code Review Workflows** - Systematic component and architecture evaluation prompts
+- **Performance Analysis** - Targeted performance improvement strategy prompts
+- **Architecture Design** - Project structure planning prompts
+- **Debugging Assistance** - Troubleshooting guidance prompts
+- **Migration Planning** - Version upgrade and library migration prompts
 
 ## 💡 Usage Examples
 
-### Comprehensive Codebase Analysis
+### Component & Codebase Analysis
 
 ```bash
-# Full project analysis (security, performance, quality, accessibility)
-claude "analyze_codebase_comprehensive"
+# Analyze a single React Native component
+claude "analyze_component with code='<your component code>'"
 
-# Focus on specific areas
-claude "analyze_codebase_comprehensive focusing on security and deprecated_features"
+# Analyze entire codebase (if no code provided)
+claude "analyze_component"
 
-# Performance-only analysis
+# Performance-focused codebase analysis
 claude "analyze_codebase_performance"
 
-# Single component analysis (or entire codebase if no code provided)
-claude "analyze_component"
+# Focus on specific performance areas
+claude "analyze_codebase_performance with focus_areas=['list_rendering', 'memory_usage']"
+
+# Comprehensive codebase analysis
+claude "analyze_codebase_comprehensive"
+
+# Comprehensive analysis focusing on specific areas
+claude "analyze_codebase_comprehensive with analysis_types=['security', 'performance']"
 ```
 
-### Package Management & Dependency Resolution
+### Package Management & Dependencies
 
 ```bash
-# Check for package updates and upgrade recommendations
+# Check for package updates
 claude "upgrade_packages"
 
-# Automatically apply safe package updates
-claude "upgrade_packages with auto_apply=true and update_level=minor"
+# Automatically apply minor and patch updates
+claude "upgrade_packages with auto_apply=true and update_level='minor'"
 
 # Resolve dependency conflicts
 claude "resolve_dependencies"
@@ -163,72 +163,43 @@ claude "migrate_packages"
 claude "migrate_packages with auto_migrate=true"
 ```
 
-#### Package Management Features
+### Performance & Architecture Guidance
 
-**Upgrade Management**
-- Automated update checking for outdated packages
-- Intelligent update levels (patch, minor, major, all)
-- React Native compatibility validation
-- Optional automatic application of safe updates
+```bash
+# Get performance optimization suggestions
+claude "optimize_performance with scenario='list_rendering'"
 
-**Dependency Resolution**
-- Conflict detection in dependency tree
-- Resolution suggestions for dependency issues
-- Peer dependency management
-- Automatic conflict fixing
+# Architecture advice for different project types
+claude "architecture_advice with project_type='enterprise_app'"
 
-**Security Auditing**
-- Vulnerability scanning for all dependencies
-- Severity-based filtering (low, moderate, high, critical)
-- Automated security patches where possible
-- Comprehensive vulnerability reporting
-
-**Package Migration**
-- Deprecated package detection
-- Migration paths to modern alternatives
-- Automated migration with proper commands
-- React Native specific package migrations
-claude "resolve_dependencies with fix_conflicts=true"
-
-# Security audit of packages
-claude "audit_packages"
-
-# Auto-fix security vulnerabilities
-claude "audit_packages with auto_fix=true"
-
-# Migrate deprecated packages
-claude "migrate_packages"
-
-# Automatically migrate specific packages
-claude "migrate_packages with auto_migrate=true"
+# Debugging guidance for specific issues
+claude "debug_issue with issue_type='performance' and platform='ios'"
 ```
 
 ### Real-World Examples
 
 ```bash
-# Security audit
-"Scan my React Native project for security vulnerabilities"
-
-# Performance optimization
-"Analyze my app for performance bottlenecks and memory leaks"
-
-# Code quality assessment  
-"Review my codebase for refactoring opportunities and best practices"
-
-# Accessibility compliance
-"Check my app for accessibility issues and recommendations"
+# Component analysis
+"Analyze my React Native component for performance issues and best practices"
 
 # Package management
 "Check my packages for updates and security vulnerabilities"
-"Upgrade my React Native project to the latest stable version"
+"Upgrade my React Native project dependencies safely"
 "Resolve dependency conflicts in my package.json"
 "Migrate deprecated packages to their modern alternatives"
-"Fix security vulnerabilities in my dependencies"
 
-# Dependency troubleshooting
+# Performance optimization
+"Analyze my app's FlatList performance with 10,000+ items"
+"Optimize my React Native app's bundle size"
+"Find memory leaks in my React Native app"
+
+# Architecture guidance
+"What's the best architecture for a React Native e-commerce app?"
+"How should I structure a large-scale React Native application?"
+
+# Debugging assistance
+"Debug this navigation crash on iOS"
 "Why is my app failing to build after updating dependencies?"
-"How do I resolve version conflicts between React Native and my packages?"
-"What packages are deprecated and need migration?"
 ```
 
 ### With Claude CLI
@@ -286,75 +257,70 @@ Add to your `claude_desktop_config.json`:
 
 ## 🏗️ Development
 
+### Local Development
+
 ```bash
+# Clone the repository
+git clone https://github.com/MrNitro360/React-Native-MCP.git
+cd React-Native-MCP
+
+# Install dependencies
+npm install
+
 # Development mode with auto-reload
 npm run dev
 
 # Build for production
 npm run build
 
-# Run in production
+# Run the built server
 npm start
 ```
 
-## 🤖 Automated Publishing
-
-This project features a fully automated CI/CD pipeline:
-
-- **Automatic Version Management** - Semantic versioning with auto-increment
-- **Continuous Deployment** - Every merge to main triggers npm publishing
-- **GitHub Releases** - Automated release notes and version tagging
-- **Quality Assurance** - Build validation before publishing
-
-### How Updates Work
-
-1. Code changes merged to `main` branch
-2. GitHub Actions automatically increments version
-3. Builds and tests the package
-4. Publishes to npm registry
-5. Creates GitHub release with changelog
-6. Users get latest version with `npm update`
-
-### Staying Updated
+### Testing & Validation
 
 ```bash
-# Check current version
-npm list -g @mrnitro360/react-native-mcp-guide
+# Build the project
+npm run build
 
-# Update to latest
-npm update -g @mrnitro360/react-native-mcp-guide
+# Test with Claude CLI
+claude mcp add react-native-guide node ./build/index.js
+claude mcp list
 
-# Reconfigure Claude CLI with latest version
-claude mcp remove react-native-guide
-claude mcp add react-native-guide npx @mrnitro360/react-native-mcp-guide
+# Verify the server is working
+claude "analyze_component"
 ```
 
 ## 📋 What You Get
 
-### 🎯 Professional Analysis Capabilities
+### 🎯 Core Analysis Capabilities
 
-- **Comprehensive Codebase Analysis** - Security, performance, quality, accessibility in one scan
-- **Enterprise-Grade Security Auditing** - Vulnerability detection and secure coding validation
-- **Performance Optimization Intelligence** - Memory, rendering, and bundle size optimization
-- **Code Quality Assessment** - Complexity analysis, refactoring suggestions, maintainability metrics
-- **Accessibility Compliance** - Screen reader support, inclusive design recommendations
-- **Testing Strategy Guidance** - Coverage analysis, testing best practices, automation recommendations
+- **11 Specialized Tools** - Complete React Native development toolkit including component analysis, performance optimization, and comprehensive package management
+- **Component & Codebase Analysis** - Analyze individual components or entire projects for best practices, performance issues, and security concerns
+- **Package Management Suite** - Upgrade packages, resolve dependencies, audit security, and migrate deprecated packages with automated workflows
+- **Performance Optimization** - Targeted suggestions for list rendering, navigation, animations, memory usage, and bundle size optimization
+- **Architecture Guidance** - Project structure recommendations for different scales and types of applications
 
 ### 🛠️ Technical Features
 
-- **7 Specialized Analysis Tools** for comprehensive React Native evaluation
-- **6 Expert Prompt Templates** for development workflows and decision making
-- **5 Resource Libraries** with React Native documentation and best practices
-- **Severity-Based Reporting** - Critical, high, medium, and low priority issue classification
-- **Actionable Recommendations** - Specific suggestions with implementation guidance
-- **Platform Awareness** - iOS and Android specific considerations and optimizations
+- **Cross-Platform Package Management** - Works with npm, yarn, and pnpm package managers
+- **Automated Security Auditing** - Vulnerability scanning with severity-based filtering and automated fixes
+- **Intelligent Upgrade Management** - Smart package updates with React Native compatibility checking
+- **Dependency Conflict Resolution** - Detect and resolve dependency tree conflicts automatically
+- **Debugging Assistance** - Platform-specific troubleshooting for iOS and Android
 
-### 🏢 Enterprise Ready
+### 📚 Resources & Documentation
 
-- **Professional Reporting** - Executive summaries with prioritized recommendations  
-- **Security-First Approach** - Vulnerability scanning and secure development practices
-- **Scalability Guidance** - Architecture patterns for large-scale mobile applications
-- **Compliance Support** - Accessibility standards and mobile app security guidelines
+- **6 Expert Prompt Templates** - Pre-built prompts for code review, architecture design, performance analysis, and migration planning
+- **5 Resource Libraries** - Access to React Native documentation, best practices, and platform-specific guides
+- **Comprehensive Guidance** - Documentation, best practices, performance optimization techniques, and security guidelines
+
+### 🏢 Professional Features
+
+- **Enterprise Ready** - Suitable for large-scale applications with comprehensive analysis and reporting
+- **Security First** - Built-in security auditing and vulnerability detection
+- **Scalability Focused** - Architecture patterns and optimization strategies for growing applications
+- **Developer Productivity** - Automated workflows for common development tasks and maintenance
 
 ## 🤝 Contributing
 
