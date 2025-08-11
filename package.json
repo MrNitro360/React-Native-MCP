@@ -11,7 +11,6 @@
     "build": "tsc",
     "dev": "tsx src/index.ts",
     "start": "node build/index.js",
-    "test": "jest",
     "update-global": "npm run build && powershell \"Copy-Item -Path 'build\\*' -Destination 'C:\\mcp-servers\\react-native-guide\\' -Recurse -Force\"",
     "restart-mcp": "claude mcp remove react-native-guide && claude mcp add react-native-guide node C:/mcp-servers/react-native-guide/build/index.js -s user",
     "deploy": "npm run update-global && npm run restart-mcp && claude mcp list",

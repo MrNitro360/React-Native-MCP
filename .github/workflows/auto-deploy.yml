@@ -90,12 +90,45 @@ jobs:
         echo "version=$finalVersion" >> $GITHUB_OUTPUT
         echo "Final version for publishing: $finalVersion"
     
+    - name: Check if version exists on npm
+      if: steps.version-check.outputs.should-publish == 'true'
+      run: |
+        echo "🔍 Checking if version ${{ steps.final-version.outputs.version }} already exists..."
+        if npm view @mrnitro360/react-native-mcp-guide@${{ steps.final-version.outputs.version }} version 2>/dev/null; then
+          echo "❌ Version ${{ steps.final-version.outputs.version }} already exists on npm"
+          echo "This might explain the publish failure"
+          npm view @mrnitro360/react-native-mcp-guide versions --json | tail -5
+          exit 1
+        else
+          echo "✅ Version ${{ steps.final-version.outputs.version }} is available for publishing"
+        fi
+    
     - name: Publish to npm
       if: steps.version-check.outputs.should-publish == 'true'
       run: |
-        echo "Publishing version ${{ steps.final-version.outputs.version }} to npm..."
-        npm publish --access public
-        echo "Successfully published to npm!"
+        echo "🔍 Pre-publish verification..."
+        echo "NPM registry: $(npm config get registry)"
+        echo "Package name: $(node -p "require('./package.json').name")"
+        echo "Package version: ${{ steps.final-version.outputs.version }}"
+        echo "Package files:"
+        npm pack --dry-run
+        
+        echo "📦 Publishing version ${{ steps.final-version.outputs.version }} to npm..."
+        
+        # Check if we're authenticated
+        if [ -z "$NODE_AUTH_TOKEN" ]; then
+          echo "❌ NODE_AUTH_TOKEN is not set"
+          exit 1
+        fi
+        
+        # Verify npm whoami works
+        npm whoami || echo "Warning: npm whoami failed, but continuing..."
+        
+        # Publish with verbose output
+        npm publish --access public --verbose
+        
+        echo "✅ Successfully published to npm!"
+        echo "🔗 Package URL: https://www.npmjs.com/package/@mrnitro360/react-native-mcp-guide"
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     
