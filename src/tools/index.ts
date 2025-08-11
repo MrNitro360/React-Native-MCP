@@ -332,6 +332,72 @@ export class ReactNativeTools {
         };
       }
     );
+
+    // Version Info Tool - Simple utility for getting MCP server version
+    this.server.tool(
+      "get_version_info",
+      "Get React Native MCP Server version and build information",
+      {
+        include_build_info: z.boolean().optional().describe("Include detailed build information")
+      },
+      async ({ include_build_info = false }) => {
+        const versionInfo = this.getVersionInfo(include_build_info);
+        return {
+          content: [
+            {
+              type: "text",
+              text: versionInfo
+            }
+          ]
+        };
+      }
+    );
+  }
+
+  private getVersionInfo(includeBuildInfo: boolean): string {
+    // Try to read package.json to get version
+    let version = "Unknown";
+    let packageInfo = {};
+    
+    try {
+      const packagePath = path.join(process.cwd(), 'package.json');
+      if (fs.existsSync(packagePath)) {
+        packageInfo = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+        version = (packageInfo as any).version || "Unknown";
+      }
+    } catch (error) {
+      // Fallback - version info might not be available in all environments
+    }
+
+    let info = `# React Native MCP Server Version Information\n\n`;
+    info += `**Current Version:** ${version}\n`;
+    info += `**Package:** @mrnitro360/react-native-mcp-guide\n`;
+    info += `**Runtime:** Node.js ${process.version}\n`;
+    info += `**Platform:** ${process.platform} ${process.arch}\n\n`;
+
+    if (includeBuildInfo) {
+      info += `## Build Information\n\n`;
+      info += `**Process ID:** ${process.pid}\n`;
+      info += `**Working Directory:** ${process.cwd()}\n`;
+      info += `**Memory Usage:** ${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB\n`;
+      info += `**Uptime:** ${Math.round(process.uptime())}s\n\n`;
+      
+      info += `## Capabilities\n\n`;
+      info += `- ✅ Component Analysis\n`;
+      info += `- ✅ Performance Optimization\n`;
+      info += `- ✅ Security Auditing\n`;
+      info += `- ✅ Test Generation\n`;
+      info += `- ✅ Package Management\n`;
+      info += `- ✅ Architecture Guidance\n\n`;
+      
+      info += `## Updates\n\n`;
+      info += `To update to the latest version:\n`;
+      info += `\`\`\`bash\n`;
+      info += `npm update -g @mrnitro360/react-native-mcp-guide\n`;
+      info += `\`\`\`\n`;
+    }
+
+    return info;
   }
 
   private analyzeComponent(code: string, type?: string): string {
