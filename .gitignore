@@ -14,8 +14,6 @@ dist/
 .vscode/
 .idea/
 
-# GitHub folder
-.github/
 
 # OS files
 .DS_Store
