@@ -8,6 +8,8 @@ import { ReactNativeResources } from "./resources/index.js";
 import { ReactNativePrompts } from "./prompts/index.js";
 
 /**
+ * React Native MCP Server - v1.0.1
+ * Enhanced with automatic npm publishing via GitHub Actions
  * React Native MCP Server
  * 
  * This server provides React Native development guidance, best practices,
