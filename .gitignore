@@ -11,7 +11,9 @@ dist/
 .env.production
 
 # IDE files
-.vscode/
+# Keep .vscode ignored except allow tasks.json for shared tasks
+.vscode/*
+!.vscode/tasks.json
 .idea/
 
 
