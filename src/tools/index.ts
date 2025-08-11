@@ -1,5 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * React Native Tools
@@ -10,16 +12,26 @@ export class ReactNativeTools {
   constructor(private server: McpServer) {}
 
   register() {
-    // Component Analysis Tool
+    // Component Analysis Tool - Enhanced with codebase support
     this.server.tool(
       "analyze_component",
       "Analyze React Native component for best practices",
       {
-        code: z.string().describe("React Native component code to analyze"),
-        type: z.enum(["functional", "class", "hook"]).optional().describe("Component type")
+        code: z.string().optional().describe("React Native component code to analyze. If not provided, analyzes entire codebase"),
+        type: z.enum(["functional", "class", "hook"]).optional().describe("Component type"),
+        codebase_path: z.string().optional().describe("Path to React Native project root for codebase analysis")
       },
-      async ({ code, type }) => {
-        const analysis = this.analyzeComponent(code, type);
+      async ({ code, type, codebase_path }) => {
+        let analysis: string;
+        
+        if (code) {
+          // Analyze single component
+          analysis = this.analyzeComponent(code, type);
+        } else {
+          // Analyze entire codebase
+          analysis = await this.analyzeCodebase(codebase_path || process.cwd());
+        }
+        
         return {
           content: [
             {
@@ -31,7 +43,73 @@ export class ReactNativeTools {
       }
     );
 
-    // Performance Optimization Tool
+    // Codebase Performance Analysis Tool
+    this.server.tool(
+      "analyze_codebase_performance",
+      "Analyze entire React Native codebase for performance issues",
+      {
+        codebase_path: z.string().optional().describe("Path to React Native project root"),
+        focus_areas: z.array(z.enum([
+          "list_rendering",
+          "navigation", 
+          "animations",
+          "memory_usage",
+          "bundle_size",
+          "startup_time",
+          "all"
+        ])).optional().describe("Specific performance areas to focus on")
+      },
+      async ({ codebase_path, focus_areas = ["all"] }) => {
+        const analysis = await this.analyzeCodebasePerformance(
+          codebase_path || process.cwd(), 
+          focus_areas
+        );
+        return {
+          content: [
+            {
+              type: "text",
+              text: analysis
+            }
+          ]
+        };
+      }
+    );
+
+    // Comprehensive Codebase Analysis Tool
+    this.server.tool(
+      "analyze_codebase_comprehensive",
+      "Comprehensive React Native codebase analysis including performance, security, refactoring, and upgrades",
+      {
+        codebase_path: z.string().optional().describe("Path to React Native project root"),
+        analysis_types: z.array(z.enum([
+          "performance",
+          "security", 
+          "code_quality",
+          "refactoring",
+          "deprecated_features",
+          "upgrades",
+          "accessibility",
+          "testing",
+          "all"
+        ])).optional().describe("Types of analysis to perform")
+      },
+      async ({ codebase_path, analysis_types = ["all"] }) => {
+        const analysis = await this.analyzeCodebaseComprehensive(
+          codebase_path || process.cwd(),
+          analysis_types
+        );
+        return {
+          content: [
+            {
+              type: "text",
+              text: analysis
+            }
+          ]
+        };
+      }
+    );
+
+    // Performance Optimization Tool (existing)
     this.server.tool(
       "optimize_performance",
       "Get performance optimization suggestions for React Native",
@@ -665,5 +743,943 @@ const fetchData = async () => {
     }
 
     return guidance;
+  }
+
+  // New codebase analysis methods
+  private async analyzeCodebase(projectPath: string): Promise<string> {
+    try {
+      const reactNativeFiles = await this.findReactNativeFiles(projectPath);
+      const analysis = {
+        totalFiles: reactNativeFiles.length,
+        components: [] as any[],
+        issues: [] as string[],
+        suggestions: [] as string[]
+      };
+
+      // Analyze each file
+      for (const filePath of reactNativeFiles) {
+        const content = await fs.promises.readFile(filePath, 'utf-8');
+        const fileAnalysis = this.analyzeFileContent(content, filePath);
+        analysis.components.push(fileAnalysis);
+        analysis.issues.push(...fileAnalysis.issues);
+        analysis.suggestions.push(...fileAnalysis.suggestions);
+      }
+
+      return this.formatCodebaseAnalysis(analysis, projectPath);
+    } catch (error) {
+      return `Error analyzing codebase: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  }
+
+  private async analyzeCodebaseComprehensive(projectPath: string, analysisTypes: string[]): Promise<string> {
+    try {
+      const reactNativeFiles = await this.findReactNativeFiles(projectPath);
+      const packageJsonPath = path.join(projectPath, 'package.json');
+      
+      let packageJson: any = {};
+      try {
+        const packageContent = await fs.promises.readFile(packageJsonPath, 'utf-8');
+        packageJson = JSON.parse(packageContent);
+      } catch {
+        // No package.json found
+      }
+
+      const analysis = {
+        totalFiles: reactNativeFiles.length,
+        packageJson,
+        performance: [] as any[],
+        security: [] as any[],
+        codeQuality: [] as any[],
+        refactoring: [] as any[],
+        deprecated: [] as any[],
+        upgrades: [] as any[],
+        accessibility: [] as any[],
+        testing: [] as any[]
+      };
+
+      // Analyze each file
+      for (const filePath of reactNativeFiles) {
+        const content = await fs.promises.readFile(filePath, 'utf-8');
+        const fileName = path.basename(filePath);
+        
+        if (analysisTypes.includes('all') || analysisTypes.includes('performance')) {
+          analysis.performance.push(...this.analyzeFilePerformance(content, filePath, ['all']));
+        }
+        
+        if (analysisTypes.includes('all') || analysisTypes.includes('security')) {
+          analysis.security.push(...this.analyzeFileSecurity(content, fileName));
+        }
+        
+        if (analysisTypes.includes('all') || analysisTypes.includes('code_quality')) {
+          analysis.codeQuality.push(...this.analyzeFileCodeQuality(content, fileName));
+        }
+        
+        if (analysisTypes.includes('all') || analysisTypes.includes('refactoring')) {
+          analysis.refactoring.push(...this.analyzeFileRefactoring(content, fileName));
+        }
+        
+        if (analysisTypes.includes('all') || analysisTypes.includes('deprecated_features')) {
+          analysis.deprecated.push(...this.analyzeFileDeprecated(content, fileName));
+        }
+        
+        if (analysisTypes.includes('all') || analysisTypes.includes('accessibility')) {
+          analysis.accessibility.push(...this.analyzeFileAccessibility(content, fileName));
+        }
+        
+        if (analysisTypes.includes('all') || analysisTypes.includes('testing')) {
+          analysis.testing.push(...this.analyzeFileTesting(content, fileName));
+        }
+      }
+
+      // Analyze package.json for upgrades
+      if (analysisTypes.includes('all') || analysisTypes.includes('upgrades')) {
+        analysis.upgrades.push(...this.analyzePackageUpgrades(packageJson));
+      }
+
+      return this.formatComprehensiveAnalysis(analysis, projectPath);
+    } catch (error) {
+      return `Error in comprehensive analysis: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  }
+
+  private analyzeFileSecurity(content: string, fileName: string): any[] {
+    const issues: any[] = [];
+
+    // Hardcoded secrets
+    if (/api[_-]?key\s*[:=]\s*["'][^"']+["']/i.test(content)) {
+      issues.push({
+        file: fileName,
+        type: 'security',
+        severity: 'critical',
+        category: 'secrets',
+        issue: 'Potential hardcoded API key detected',
+        suggestion: 'Move API keys to environment variables or secure storage'
+      });
+    }
+
+    // Console.log with sensitive data patterns
+    if (/console\.log.*(?:password|token|secret|key)/i.test(content)) {
+      issues.push({
+        file: fileName,
+        type: 'security',
+        severity: 'high',
+        category: 'data_exposure',
+        issue: 'Console.log may expose sensitive data',
+        suggestion: 'Remove console.log statements or sanitize logged data'
+      });
+    }
+
+    // Eval usage
+    if (content.includes('eval(')) {
+      issues.push({
+        file: fileName,
+        type: 'security',
+        severity: 'critical',
+        category: 'code_injection',
+        issue: 'Use of eval() detected',
+        suggestion: 'Replace eval() with safer alternatives like JSON.parse()'
+      });
+    }
+
+    // Insecure HTTP requests
+    if (/fetch\s*\(\s*["']http:\/\//.test(content)) {
+      issues.push({
+        file: fileName,
+        type: 'security',
+        severity: 'medium',
+        category: 'insecure_transport',
+        issue: 'HTTP request detected (not HTTPS)',
+        suggestion: 'Use HTTPS for all network requests'
+      });
+    }
+
+    // Dangerous HTML rendering
+    if (content.includes('dangerouslySetInnerHTML')) {
+      issues.push({
+        file: fileName,
+        type: 'security',
+        severity: 'high',
+        category: 'xss',
+        issue: 'dangerouslySetInnerHTML usage detected',
+        suggestion: 'Sanitize HTML content or use safer alternatives'
+      });
+    }
+
+    return issues;
+  }
+
+  private analyzeFileCodeQuality(content: string, fileName: string): any[] {
+    const issues: any[] = [];
+    const lines = content.split('\n');
+
+    // Long functions
+    let functionLength = 0;
+    let inFunction = false;
+    for (const line of lines) {
+      if (/(?:function|const\s+\w+\s*=|=>\s*{)/.test(line)) {
+        inFunction = true;
+        functionLength = 0;
+      }
+      if (inFunction) functionLength++;
+      if (line.includes('}') && inFunction) {
+        if (functionLength > 50) {
+          issues.push({
+            file: fileName,
+            type: 'code_quality',
+            severity: 'medium',
+            category: 'function_length',
+            issue: `Function longer than 50 lines (${functionLength} lines)`,
+            suggestion: 'Break down large functions into smaller, focused functions'
+          });
+        }
+        inFunction = false;
+      }
+    }
+
+    // Too many props
+    const propMatches = content.match(/interface\s+\w+Props\s*{([^}]+)}/g);
+    if (propMatches) {
+      propMatches.forEach(match => {
+        const propCount = (match.match(/\w+\s*:/g) || []).length;
+        if (propCount > 10) {
+          issues.push({
+            file: fileName,
+            type: 'code_quality',
+            severity: 'medium',
+            category: 'props_complexity',
+            issue: `Component has ${propCount} props (consider reducing)`,
+            suggestion: 'Group related props into objects or split component'
+          });
+        }
+      });
+    }
+
+    // Nested ternary operators
+    if (/\?\s*[^:]+\?\s*[^:]+:/.test(content)) {
+      issues.push({
+        file: fileName,
+        type: 'code_quality',
+        severity: 'low',
+        category: 'readability',
+        issue: 'Nested ternary operators detected',
+        suggestion: 'Use if-else statements or extract to functions for better readability'
+      });
+    }
+
+    // Magic numbers
+    const magicNumbers = content.match(/(?<![.\w])\d{2,}(?![.\w])/g);
+    if (magicNumbers && magicNumbers.length > 3) {
+      issues.push({
+        file: fileName,
+        type: 'code_quality',
+        severity: 'low',
+        category: 'magic_numbers',
+        issue: 'Multiple magic numbers detected',
+        suggestion: 'Extract numbers to named constants for better maintainability'
+      });
+    }
+
+    // Missing error handling
+    if (content.includes('fetch(') && !content.includes('catch')) {
+      issues.push({
+        file: fileName,
+        type: 'code_quality',
+        severity: 'medium',
+        category: 'error_handling',
+        issue: 'Network request without error handling',
+        suggestion: 'Add try-catch or .catch() for proper error handling'
+      });
+    }
+
+    return issues;
+  }
+
+  private analyzeFileRefactoring(content: string, fileName: string): any[] {
+    const suggestions: any[] = [];
+
+    // Duplicate code patterns
+    const imports = content.match(/import.*from.*/g) || [];
+    const uniqueImports = new Set(imports);
+    if (imports.length !== uniqueImports.size) {
+      suggestions.push({
+        file: fileName,
+        type: 'refactoring',
+        severity: 'low',
+        category: 'duplicate_code',
+        issue: 'Duplicate import statements',
+        suggestion: 'Remove duplicate imports'
+      });
+    }
+
+    // Large useEffect
+    const useEffectMatches = content.match(/useEffect\(\s*\(\)\s*=>\s*{([^}]+(?:{[^}]*}[^}]*)*)}/g);
+    if (useEffectMatches) {
+      useEffectMatches.forEach(effect => {
+        const lines = effect.split('\n').length;
+        if (lines > 20) {
+          suggestions.push({
+            file: fileName,
+            type: 'refactoring',
+            severity: 'medium',
+            category: 'effect_complexity',
+            issue: `Large useEffect hook (${lines} lines)`,
+            suggestion: 'Split useEffect into multiple effects or extract to custom hooks'
+          });
+        }
+      });
+    }
+
+    // Inline styles
+    if (content.includes('style={{') && !content.includes('StyleSheet')) {
+      suggestions.push({
+        file: fileName,
+        type: 'refactoring',
+        severity: 'medium',
+        category: 'styling',
+        issue: 'Inline styles detected',
+        suggestion: 'Move styles to StyleSheet.create() for better performance'
+      });
+    }
+
+    // Complex conditionals
+    if (/&&.*&&.*&&/.test(content)) {
+      suggestions.push({
+        file: fileName,
+        type: 'refactoring',
+        severity: 'low',
+        category: 'complexity',
+        issue: 'Complex conditional rendering',
+        suggestion: 'Extract complex conditions to variables or functions'
+      });
+    }
+
+    // Props drilling (many prop passes)
+    const propPasses = (content.match(/\w+={[^}]*}/g) || []).length;
+    if (propPasses > 8) {
+      suggestions.push({
+        file: fileName,
+        type: 'refactoring',
+        severity: 'medium',
+        category: 'props_drilling',
+        issue: `Many props being passed (${propPasses})`,
+        suggestion: 'Consider using Context API or state management library'
+      });
+    }
+
+    return suggestions;
+  }
+
+  private analyzeFileDeprecated(content: string, fileName: string): any[] {
+    const issues: any[] = [];
+
+    // Deprecated React Native components/APIs
+    const deprecatedAPIs = [
+      { old: 'ListView', new: 'FlatList or SectionList', severity: 'high' },
+      { old: 'Navigator', new: 'React Navigation', severity: 'high' },
+      { old: 'TabBarIOS', new: 'React Navigation Bottom Tabs', severity: 'high' },
+      { old: 'ToolbarAndroid', new: 'React Navigation Header', severity: 'medium' },
+      { old: 'ViewPagerAndroid', new: 'react-native-pager-view', severity: 'medium' },
+      { old: 'DatePickerIOS', new: '@react-native-community/datetimepicker', severity: 'medium' },
+      { old: 'PickerIOS', new: '@react-native-picker/picker', severity: 'medium' },
+      { old: 'SliderIOS', new: '@react-native-community/slider', severity: 'medium' },
+      { old: 'SwitchIOS', new: 'Switch', severity: 'low' },
+      { old: 'SwitchAndroid', new: 'Switch', severity: 'low' }
+    ];
+
+    deprecatedAPIs.forEach(api => {
+      if (content.includes(api.old)) {
+        issues.push({
+          file: fileName,
+          type: 'deprecated',
+          severity: api.severity,
+          category: 'deprecated_api',
+          issue: `${api.old} is deprecated`,
+          suggestion: `Replace ${api.old} with ${api.new}`
+        });
+      }
+    });
+
+    // Deprecated React patterns
+    if (content.includes('componentWillMount')) {
+      issues.push({
+        file: fileName,
+        type: 'deprecated',
+        severity: 'high',
+        category: 'lifecycle',
+        issue: 'componentWillMount is deprecated',
+        suggestion: 'Use componentDidMount or useEffect hook'
+      });
+    }
+
+    if (content.includes('componentWillReceiveProps')) {
+      issues.push({
+        file: fileName,
+        type: 'deprecated',
+        severity: 'high',
+        category: 'lifecycle',
+        issue: 'componentWillReceiveProps is deprecated',
+        suggestion: 'Use componentDidUpdate or useEffect hook'
+      });
+    }
+
+    // Old React Native versions syntax
+    if (content.includes('React.createClass')) {
+      issues.push({
+        file: fileName,
+        type: 'deprecated',
+        severity: 'critical',
+        category: 'syntax',
+        issue: 'React.createClass is deprecated',
+        suggestion: 'Convert to ES6 class or functional component'
+      });
+    }
+
+    return issues;
+  }
+
+  private analyzeFileAccessibility(content: string, fileName: string): any[] {
+    const issues: any[] = [];
+
+    // Missing accessibility labels
+    if (content.includes('<TouchableOpacity') && !content.includes('accessibilityLabel')) {
+      issues.push({
+        file: fileName,
+        type: 'accessibility',
+        severity: 'medium',
+        category: 'labels',
+        issue: 'TouchableOpacity missing accessibilityLabel',
+        suggestion: 'Add accessibilityLabel for screen readers'
+      });
+    }
+
+    if (content.includes('<Image') && !content.includes('accessibilityLabel')) {
+      issues.push({
+        file: fileName,
+        type: 'accessibility',
+        severity: 'medium',
+        category: 'labels',
+        issue: 'Image missing accessibilityLabel',
+        suggestion: 'Add accessibilityLabel or mark as decorative'
+      });
+    }
+
+    // Missing accessibility roles
+    if ((content.includes('<TouchableOpacity') || content.includes('<Pressable')) && 
+        !content.includes('accessibilityRole')) {
+      issues.push({
+        file: fileName,
+        type: 'accessibility',
+        severity: 'low',
+        category: 'roles',
+        issue: 'Interactive element missing accessibilityRole',
+        suggestion: 'Add accessibilityRole="button" for buttons'
+      });
+    }
+
+    // Text without accessibility considerations
+    if (content.includes('<Text') && content.includes('fontSize') && 
+        !content.includes('allowFontScaling')) {
+      issues.push({
+        file: fileName,
+        type: 'accessibility',
+        severity: 'low',
+        category: 'font_scaling',
+        issue: 'Text component may not respect font scaling',
+        suggestion: 'Consider allowFontScaling prop for accessibility'
+      });
+    }
+
+    return issues;
+  }
+
+  private analyzeFileTesting(content: string, fileName: string): any[] {
+    const suggestions: any[] = [];
+
+    // Components without tests
+    if ((content.includes('export default') || content.includes('export const')) && 
+        content.includes('React') && !fileName.includes('.test.')) {
+      // This is a component file, check if test file exists
+      suggestions.push({
+        file: fileName,
+        type: 'testing',
+        severity: 'low',
+        category: 'test_coverage',
+        issue: 'Component may lack corresponding test file',
+        suggestion: `Create ${fileName.replace(/\.(js|tsx?)$/, '.test.$1')} for this component`
+      });
+    }
+
+    // Missing test IDs for testing
+    if (content.includes('<TouchableOpacity') && !content.includes('testID')) {
+      suggestions.push({
+        file: fileName,
+        type: 'testing',
+        severity: 'low',
+        category: 'test_ids',
+        issue: 'Interactive elements missing testID',
+        suggestion: 'Add testID props for easier testing'
+      });
+    }
+
+    // Complex components without prop validation
+    if (content.includes('interface') && content.includes('Props') && 
+        !content.includes('PropTypes') && !fileName.includes('.d.ts')) {
+      suggestions.push({
+        file: fileName,
+        type: 'testing',
+        severity: 'low',
+        category: 'prop_validation',
+        issue: 'Component uses TypeScript but could benefit from runtime validation',
+        suggestion: 'Consider PropTypes for runtime prop validation in development'
+      });
+    }
+
+    return suggestions;
+  }
+
+  private analyzePackageUpgrades(packageJson: any): any[] {
+    const suggestions: any[] = [];
+
+    if (!packageJson.dependencies && !packageJson.devDependencies) {
+      return suggestions;
+    }
+
+    const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
+
+    // React Native version
+    if (dependencies['react-native']) {
+      const version = dependencies['react-native'].replace(/[^0-9.]/g, '');
+      const majorVersion = parseInt(version.split('.')[0]);
+      if (majorVersion < 70) {
+        suggestions.push({
+          file: 'package.json',
+          type: 'upgrades',
+          severity: 'high',
+          category: 'react_native_version',
+          issue: `React Native ${version} is outdated`,
+          suggestion: 'Upgrade to React Native 0.72+ for latest features and security fixes'
+        });
+      }
+    }
+
+    // Common deprecated packages
+    const deprecatedPackages: Record<string, string> = {
+      'react-native-vector-icons': '@expo/vector-icons or react-native-vector-icons (check latest)',
+      'react-native-asyncstorage': '@react-native-async-storage/async-storage',
+      'react-native-community/async-storage': '@react-native-async-storage/async-storage',
+      '@react-native-community/netinfo': '@react-native-community/netinfo (check if latest)'
+    };
+
+    Object.keys(deprecatedPackages).forEach(pkg => {
+      if (dependencies[pkg]) {
+        suggestions.push({
+          file: 'package.json',
+          type: 'upgrades',
+          severity: 'medium',
+          category: 'package_migration',
+          issue: `${pkg} may be deprecated or have better alternatives`,
+          suggestion: `Consider migrating to ${deprecatedPackages[pkg]}`
+        });
+      }
+    });
+
+    // Missing useful packages
+    const recommendedPackages = [
+      { pkg: 'react-native-flipper', reason: 'For debugging', severity: 'low' },
+      { pkg: '@react-native-community/eslint-config', reason: 'For code quality', severity: 'low' },
+      { pkg: 'react-native-super-grid', reason: 'If using grids', severity: 'low' }
+    ];
+
+    // Check for missing linting
+    if (!dependencies['eslint'] && !dependencies['@react-native-community/eslint-config']) {
+      suggestions.push({
+        file: 'package.json',
+        type: 'upgrades',
+        severity: 'medium',
+        category: 'tooling',
+        issue: 'No ESLint configuration detected',
+        suggestion: 'Add ESLint with @react-native-community/eslint-config for code quality'
+      });
+    }
+
+    return suggestions;
+  }
+
+  private async analyzeCodebasePerformance(projectPath: string, focusAreas: string[]): Promise<string> {
+    try {
+      const reactNativeFiles = await this.findReactNativeFiles(projectPath);
+      const performanceIssues: any[] = [];
+
+      for (const filePath of reactNativeFiles) {
+        const content = await fs.promises.readFile(filePath, 'utf-8');
+        const issues = this.analyzeFilePerformance(content, filePath, focusAreas);
+        performanceIssues.push(...issues);
+      }
+
+      return this.formatPerformanceAnalysis(performanceIssues, projectPath);
+    } catch (error) {
+      return `Error analyzing codebase performance: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  }
+
+  private async findReactNativeFiles(projectPath: string): Promise<string[]> {
+    const files: string[] = [];
+    
+    const scanDirectory = async (dir: string): Promise<void> => {
+      try {
+        const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+        
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          
+          if (entry.isDirectory()) {
+            // Skip node_modules, .git, and other build directories
+            if (!['node_modules', '.git', 'ios', 'android', '.expo', 'dist', 'build'].includes(entry.name)) {
+              await scanDirectory(fullPath);
+            }
+          } else if (entry.isFile()) {
+            // Look for React Native files
+            if (/\.(js|jsx|ts|tsx)$/.test(entry.name) && 
+                !entry.name.includes('.test.') && 
+                !entry.name.includes('.spec.')) {
+              files.push(fullPath);
+            }
+          }
+        }
+      } catch (error) {
+        // Skip directories we can't read
+      }
+    };
+
+    await scanDirectory(projectPath);
+    return files;
+  }
+
+  private analyzeFileContent(content: string, filePath: string) {
+    const issues: string[] = [];
+    const suggestions: string[] = [];
+    const fileName = path.basename(filePath);
+
+    // Check if it's a React Native component
+    const isComponent = content.includes('React') && 
+                       (content.includes('export default') || content.includes('export const'));
+
+    if (isComponent) {
+      // Performance checks
+      if (content.includes('FlatList') && !content.includes('keyExtractor')) {
+        issues.push(`${fileName}: FlatList missing keyExtractor`);
+      }
+
+      if (content.includes('ScrollView') && content.includes('.map(')) {
+        issues.push(`${fileName}: Using map() in ScrollView instead of FlatList`);
+      }
+
+      if (content.includes('useState') && content.includes('useEffect')) {
+        if (!content.includes('useCallback') && content.includes('onPress')) {
+          issues.push(`${fileName}: Missing useCallback for event handlers`);
+        }
+      }
+
+      // Style checks
+      if (!content.includes('StyleSheet.create') && content.includes('style=')) {
+        suggestions.push(`${fileName}: Consider using StyleSheet.create for better performance`);
+      }
+
+      // Import checks
+      if (content.includes("import React from 'react'") && content.includes('useState')) {
+        suggestions.push(`${fileName}: Consider using named imports for React hooks`);
+      }
+    }
+
+    return {
+      fileName,
+      filePath,
+      isComponent,
+      issues,
+      suggestions,
+      linesOfCode: content.split('\n').length
+    };
+  }
+
+  private analyzeFilePerformance(content: string, filePath: string, focusAreas: string[]) {
+    const issues: any[] = [];
+    const fileName = path.basename(filePath);
+
+    if (focusAreas.includes('all') || focusAreas.includes('list_rendering')) {
+      if (content.includes('FlatList')) {
+        if (!content.includes('getItemLayout')) {
+          issues.push({
+            file: fileName,
+            type: 'list_rendering',
+            severity: 'medium',
+            issue: 'FlatList without getItemLayout for known item sizes',
+            suggestion: 'Add getItemLayout for better scrolling performance'
+          });
+        }
+        if (!content.includes('removeClippedSubviews')) {
+          issues.push({
+            file: fileName,
+            type: 'list_rendering', 
+            severity: 'low',
+            issue: 'FlatList without removeClippedSubviews optimization',
+            suggestion: 'Consider adding removeClippedSubviews={true} for large lists'
+          });
+        }
+      }
+    }
+
+    if (focusAreas.includes('all') || focusAreas.includes('memory_usage')) {
+      // Check for potential memory leaks
+      if (content.includes('setInterval') && !content.includes('clearInterval')) {
+        issues.push({
+          file: fileName,
+          type: 'memory_usage',
+          severity: 'high', 
+          issue: 'setInterval without clearInterval',
+          suggestion: 'Clear intervals in cleanup functions or useEffect return'
+        });
+      }
+
+      if (content.includes('addEventListener') && !content.includes('removeEventListener')) {
+        issues.push({
+          file: fileName,
+          type: 'memory_usage',
+          severity: 'high',
+          issue: 'Event listener without removal',
+          suggestion: 'Remove event listeners in cleanup functions'
+        });
+      }
+    }
+
+    if (focusAreas.includes('all') || focusAreas.includes('bundle_size')) {
+      // Check for heavy imports
+      if (content.includes("import * as")) {
+        issues.push({
+          file: fileName,
+          type: 'bundle_size',
+          severity: 'medium',
+          issue: 'Wildcard import detected',
+          suggestion: 'Use named imports to reduce bundle size'
+        });
+      }
+    }
+
+    return issues;
+  }
+
+  private formatCodebaseAnalysis(analysis: any, projectPath: string): string {
+    let report = `## React Native Codebase Analysis\n\n`;
+    report += `**Project Path:** ${projectPath}\n`;
+    report += `**Total Files Analyzed:** ${analysis.totalFiles}\n`;
+    report += `**Components Found:** ${analysis.components.filter((c: any) => c.isComponent).length}\n\n`;
+
+    if (analysis.issues.length > 0) {
+      report += `### Issues Found (${analysis.issues.length})\n\n`;
+      analysis.issues.forEach((issue: string, index: number) => {
+        report += `${index + 1}. ${issue}\n`;
+      });
+      report += '\n';
+    }
+
+    if (analysis.suggestions.length > 0) {
+      report += `### Suggestions (${analysis.suggestions.length})\n\n`;
+      analysis.suggestions.forEach((suggestion: string, index: number) => {
+        report += `${index + 1}. ${suggestion}\n`;
+      });
+      report += '\n';
+    }
+
+    // File breakdown
+    report += `### File Breakdown\n\n`;
+    const components = analysis.components.filter((c: any) => c.isComponent);
+    if (components.length > 0) {
+      report += `**React Native Components (${components.length}):**\n`;
+      components.forEach((comp: any) => {
+        report += `- ${comp.fileName} (${comp.linesOfCode} lines)\n`;
+      });
+    }
+
+    const nonComponents = analysis.components.filter((c: any) => !c.isComponent);
+    if (nonComponents.length > 0) {
+      report += `\n**Other Files (${nonComponents.length}):**\n`;
+      nonComponents.slice(0, 10).forEach((file: any) => {
+        report += `- ${file.fileName}\n`;
+      });
+      if (nonComponents.length > 10) {
+        report += `- ... and ${nonComponents.length - 10} more files\n`;
+      }
+    }
+
+    return report;
+  }
+
+  private formatPerformanceAnalysis(issues: any[], projectPath: string): string {
+    let report = `## React Native Performance Analysis\n\n`;
+    report += `**Project Path:** ${projectPath}\n`;
+    report += `**Performance Issues Found:** ${issues.length}\n\n`;
+
+    if (issues.length === 0) {
+      report += `✅ No major performance issues detected!\n\n`;
+      report += `Your React Native codebase follows good performance practices.`;
+      return report;
+    }
+
+    // Group by severity
+    const high = issues.filter(i => i.severity === 'high');
+    const medium = issues.filter(i => i.severity === 'medium');
+    const low = issues.filter(i => i.severity === 'low');
+
+    if (high.length > 0) {
+      report += `### 🔴 High Priority Issues (${high.length})\n\n`;
+      high.forEach((issue, index) => {
+        report += `${index + 1}. **${issue.file}** - ${issue.issue}\n`;
+        report += `   💡 ${issue.suggestion}\n\n`;
+      });
+    }
+
+    if (medium.length > 0) {
+      report += `### 🟡 Medium Priority Issues (${medium.length})\n\n`;
+      medium.forEach((issue, index) => {
+        report += `${index + 1}. **${issue.file}** - ${issue.issue}\n`;
+        report += `   💡 ${issue.suggestion}\n\n`;
+      });
+    }
+
+    if (low.length > 0) {
+      report += `### 🟢 Low Priority Optimizations (${low.length})\n\n`;
+      low.forEach((issue, index) => {
+        report += `${index + 1}. **${issue.file}** - ${issue.issue}\n`;
+        report += `   💡 ${issue.suggestion}\n\n`;
+      });
+    }
+
+    // Summary by category
+    const categories = [...new Set(issues.map(i => i.type))];
+    if (categories.length > 1) {
+      report += `### Issues by Category\n\n`;
+      categories.forEach(category => {
+        const count = issues.filter(i => i.type === category).length;
+        report += `- **${category.replace('_', ' ')}**: ${count} issues\n`;
+      });
+    }
+
+    return report;
+  }
+
+  private formatComprehensiveAnalysis(analysis: any, projectPath: string): string {
+    let report = `## Comprehensive React Native Codebase Analysis\n\n`;
+    report += `**Project Path:** ${projectPath}\n`;
+    report += `**Total Files Analyzed:** ${analysis.totalFiles}\n\n`;
+
+    // Summary stats
+    const totalIssues = analysis.performance.length + analysis.security.length + 
+                       analysis.codeQuality.length + analysis.refactoring.length + 
+                       analysis.deprecated.length + analysis.accessibility.length + 
+                       analysis.testing.length;
+
+    report += `### 📊 Analysis Summary\n\n`;
+    report += `- **Security Issues:** ${analysis.security.length}\n`;
+    report += `- **Performance Issues:** ${analysis.performance.length}\n`;
+    report += `- **Code Quality Issues:** ${analysis.codeQuality.length}\n`;
+    report += `- **Refactoring Opportunities:** ${analysis.refactoring.length}\n`;
+    report += `- **Deprecated Features:** ${analysis.deprecated.length}\n`;
+    report += `- **Accessibility Issues:** ${analysis.accessibility.length}\n`;
+    report += `- **Testing Gaps:** ${analysis.testing.length}\n`;
+    report += `- **Upgrade Suggestions:** ${analysis.upgrades.length}\n\n`;
+
+    if (totalIssues === 0) {
+      report += `✅ **Excellent!** Your codebase follows React Native best practices with no major issues detected.\n\n`;
+      return report;
+    }
+
+    // Critical and High severity issues first
+    const criticalIssues = [...analysis.security, ...analysis.deprecated, ...analysis.performance]
+      .filter(issue => issue.severity === 'critical' || issue.severity === 'high');
+
+    if (criticalIssues.length > 0) {
+      report += `### 🚨 Critical & High Priority Issues (${criticalIssues.length})\n\n`;
+      criticalIssues.forEach((issue, index) => {
+        const severity = issue.severity === 'critical' ? '🔴' : '🟠';
+        report += `${index + 1}. ${severity} **${issue.file}** - ${issue.issue}\n`;
+        report += `   💡 *${issue.suggestion}*\n`;
+        report += `   📂 Category: ${issue.category}\n\n`;
+      });
+    }
+
+    // Security Issues
+    if (analysis.security.length > 0) {
+      report += `### 🛡️ Security Analysis\n\n`;
+      analysis.security.forEach((issue: any, index: number) => {
+        const severity = issue.severity === 'critical' ? '🔴' : issue.severity === 'high' ? '🟠' : '🟡';
+        report += `${index + 1}. ${severity} **${issue.file}** - ${issue.issue}\n`;
+        report += `   💡 ${issue.suggestion}\n`;
+        report += `   📂 ${issue.category.replace(/_/g, ' ')}\n\n`;
+      });
+    }
+
+    // Deprecated Features
+    if (analysis.deprecated.length > 0) {
+      report += `### ⚠️ Deprecated Features\n\n`;
+      analysis.deprecated.forEach((issue: any, index: number) => {
+        report += `${index + 1}. **${issue.file}** - ${issue.issue}\n`;
+        report += `   💡 ${issue.suggestion}\n\n`;
+      });
+    }
+
+    // Code Quality
+    if (analysis.codeQuality.length > 0) {
+      report += `### 📝 Code Quality\n\n`;
+      analysis.codeQuality.forEach((issue: any, index: number) => {
+        report += `${index + 1}. **${issue.file}** - ${issue.issue}\n`;
+        report += `   💡 ${issue.suggestion}\n\n`;
+      });
+    }
+
+    // Refactoring Opportunities
+    if (analysis.refactoring.length > 0) {
+      report += `### 🔄 Refactoring Opportunities\n\n`;
+      analysis.refactoring.forEach((issue: any, index: number) => {
+        report += `${index + 1}. **${issue.file}** - ${issue.issue}\n`;
+        report += `   💡 ${issue.suggestion}\n\n`;
+      });
+    }
+
+    // Accessibility
+    if (analysis.accessibility.length > 0) {
+      report += `### ♿ Accessibility Improvements\n\n`;
+      analysis.accessibility.forEach((issue: any, index: number) => {
+        report += `${index + 1}. **${issue.file}** - ${issue.issue}\n`;
+        report += `   💡 ${issue.suggestion}\n\n`;
+      });
+    }
+
+    // Testing
+    if (analysis.testing.length > 0) {
+      report += `### 🧪 Testing Recommendations\n\n`;
+      analysis.testing.forEach((issue: any, index: number) => {
+        report += `${index + 1}. **${issue.file}** - ${issue.issue}\n`;
+        report += `   💡 ${issue.suggestion}\n\n`;
+      });
+    }
+
+    // Upgrades
+    if (analysis.upgrades.length > 0) {
+      report += `### 📦 Package & Version Upgrades\n\n`;
+      analysis.upgrades.forEach((issue: any, index: number) => {
+        report += `${index + 1}. **${issue.file}** - ${issue.issue}\n`;
+        report += `   💡 ${issue.suggestion}\n\n`;
+      });
+    }
+
+    // Recommendations
+    report += `### 🎯 Next Steps\n\n`;
+    report += `1. **Start with security issues** - Address any critical security vulnerabilities first\n`;
+    report += `2. **Update deprecated features** - Replace deprecated APIs and components\n`;
+    report += `3. **Improve performance** - Focus on high-impact performance optimizations\n`;
+    report += `4. **Enhance code quality** - Refactor complex components and improve readability\n`;
+    report += `5. **Add accessibility** - Make your app usable for all users\n`;
+    report += `6. **Increase test coverage** - Add tests for critical components\n\n`;
+
+    return report;
   }
 }
