@@ -18,6 +18,7 @@ jobs:
       with:
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
     
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -48,12 +49,12 @@ jobs:
         echo "Current version: $currentVersion"
         echo "Last commit: $lastCommit"
         
-        # Check if commit already contains version bump or is marked [skip ci]
+        # Always increment version for non-automated commits
         if [[ $lastCommit =~ (\[skip\ ci\]|Auto-increment\ version) ]]; then
           echo "version-changed=false" >> $GITHUB_OUTPUT
           echo "should-publish=false" >> $GITHUB_OUTPUT
           echo "current-version=$currentVersion" >> $GITHUB_OUTPUT
-          echo "Skipping version increment - automated commit detected"
+          echo "Skipping - automated commit detected"
         else
           echo "version-changed=true" >> $GITHUB_OUTPUT  
           echo "should-publish=true" >> $GITHUB_OUTPUT
@@ -64,20 +65,12 @@ jobs:
     - name: Auto-increment version
       if: steps.version-check.outputs.version-changed == 'true'
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        
-        # Increment patch version
+        # Increment patch version locally (don't commit back)
         npm version patch --no-git-tag-version
         newVersion=$(node -p "require('./package.json').version")
         
         echo "Incremented version to: $newVersion"
         echo "new-version=$newVersion" >> $GITHUB_OUTPUT
-        
-        # Commit version change
-        git add package.json
-        git commit -m "Auto-increment version to v$newVersion [skip ci]"
-        git push
       id: auto-version
     
     - name: Get final version for publishing
