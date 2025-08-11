@@ -64,6 +64,6 @@ temp_*
 *.swo
 
 # Project specific temporary files
-reddit-post.*
 *_NEW.*
-PROJECT_SUMMARY.md
+temp_*
+*.tmp

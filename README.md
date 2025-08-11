@@ -91,13 +91,14 @@ You should see `react-native-guide` listed and connected.
 - **Testing Gap Analysis** - Test coverage evaluation and testing strategy suggestions
 - **Package & Dependency Auditing** - Version updates, security patches, migration paths
 
-### 🛡️ Security & Quality Focus
+### � Package Management & Dependencies
 
-- **Hardcoded Secret Detection** - API keys, tokens, passwords in code
-- **Insecure Request Identification** - HTTP vs HTTPS, data exposure risks
-- **Code Injection Prevention** - eval() usage, XSS vulnerability detection
-- **Error Handling Analysis** - Missing try-catch blocks, unhandled promises
-- **Performance Anti-patterns** - Memory leaks, inefficient rendering, large bundles
+- **Automatic Package Upgrades** - Check for outdated packages and provide upgrade recommendations
+- **Dependency Conflict Resolution** - Detect and resolve dependency tree conflicts
+- **Security Vulnerability Auditing** - Scan for security issues and provide automated fixes
+- **Package Migration Assistance** - Migrate deprecated packages to modern alternatives
+- **React Native Compatibility Checks** - Ensure packages work with current RN version
+- **Peer Dependency Management** - Resolve missing peer dependencies and version conflicts
 
 ### 📚 Expert Resources
 
@@ -134,6 +135,74 @@ claude "analyze_codebase_performance"
 claude "analyze_component"
 ```
 
+### Package Management & Dependency Resolution
+
+```bash
+# Check for package updates and upgrade recommendations
+claude "upgrade_packages"
+
+# Automatically apply safe package updates
+claude "upgrade_packages with auto_apply=true and update_level=minor"
+
+# Resolve dependency conflicts
+claude "resolve_dependencies"
+
+# Automatically fix dependency conflicts
+claude "resolve_dependencies with fix_conflicts=true"
+
+# Security audit of packages
+claude "audit_packages"
+
+# Auto-fix security vulnerabilities
+claude "audit_packages with auto_fix=true"
+
+# Migrate deprecated packages
+claude "migrate_packages"
+
+# Automatically migrate specific packages
+claude "migrate_packages with auto_migrate=true"
+```
+
+#### Package Management Features
+
+**Upgrade Management**
+- Automated update checking for outdated packages
+- Intelligent update levels (patch, minor, major, all)
+- React Native compatibility validation
+- Optional automatic application of safe updates
+
+**Dependency Resolution**
+- Conflict detection in dependency tree
+- Resolution suggestions for dependency issues
+- Peer dependency management
+- Automatic conflict fixing
+
+**Security Auditing**
+- Vulnerability scanning for all dependencies
+- Severity-based filtering (low, moderate, high, critical)
+- Automated security patches where possible
+- Comprehensive vulnerability reporting
+
+**Package Migration**
+- Deprecated package detection
+- Migration paths to modern alternatives
+- Automated migration with proper commands
+- React Native specific package migrations
+claude "resolve_dependencies with fix_conflicts=true"
+
+# Security audit of packages
+claude "audit_packages"
+
+# Auto-fix security vulnerabilities
+claude "audit_packages with auto_fix=true"
+
+# Migrate deprecated packages
+claude "migrate_packages"
+
+# Automatically migrate specific packages
+claude "migrate_packages with auto_migrate=true"
+```
+
 ### Real-World Examples
 
 ```bash
@@ -149,8 +218,17 @@ claude "analyze_component"
 # Accessibility compliance
 "Check my app for accessibility issues and recommendations"
 
-# Dependency management
-"Audit my packages for outdated or deprecated dependencies"
+# Package management
+"Check my packages for updates and security vulnerabilities"
+"Upgrade my React Native project to the latest stable version"
+"Resolve dependency conflicts in my package.json"
+"Migrate deprecated packages to their modern alternatives"
+"Fix security vulnerabilities in my dependencies"
+
+# Dependency troubleshooting
+"Why is my app failing to build after updating dependencies?"
+"How do I resolve version conflicts between React Native and my packages?"
+"What packages are deprecated and need migration?"
 ```
 
 ### With Claude CLI
