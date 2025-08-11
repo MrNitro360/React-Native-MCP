@@ -1,6 +1,6 @@
 {
   "name": "react-native-mcp-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server for React Native best practices guidance",
   "type": "module",
   "main": "build/index.js",
@@ -20,7 +20,7 @@
   },
   "keywords": [
     "mcp",
-    "model-context-protocol", 
+    "model-context-protocol",
     "react-native",
     "best-practices",
     "development-guide"
