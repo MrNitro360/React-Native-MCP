@@ -22,7 +22,7 @@
 		{
 			"label": "Test",
 			"type": "shell",
-			"command": "npm test",
+			"command": "npm test -- --passWithNoTests",
 			"problemMatcher": []
 		}
 	]
