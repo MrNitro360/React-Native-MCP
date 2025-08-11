@@ -1,11 +1,11 @@
 {
-  "name": "react-native-mcp-server",
+  "name": "@mrnitro360/react-native-mcp-guide",
   "version": "1.0.1",
   "description": "MCP server for React Native best practices guidance",
   "type": "module",
   "main": "build/index.js",
   "bin": {
-    "react-native-mcp": "./build/index.js"
+    "react-native-mcp-guide": "./build/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -25,7 +25,7 @@
     "best-practices",
     "development-guide"
   ],
-  "author": "Your Name",
+  "author": "mrnitro360",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
