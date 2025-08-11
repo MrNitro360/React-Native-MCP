@@ -1,8 +1,0 @@
-{
-  "scripts": {
-    "start": "node build/index.js",
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "test": "node scripts/test-server.js"
-  }
-}
