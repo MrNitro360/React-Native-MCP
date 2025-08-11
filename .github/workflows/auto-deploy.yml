@@ -1,0 +1,40 @@
+name: Auto-Deploy MCP Server
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'tsconfig.json'
+
+jobs:
+  deploy:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build
+      run: npm run build
+    
+    - name: Deploy to MCP Directory
+      run: |
+        # Copy built files to global MCP directory
+        Copy-Item -Path "build\*" -Destination "C:\mcp-servers\react-native-guide\" -Recurse -Force
+        
+        # Restart MCP server
+        claude mcp remove react-native-guide
+        claude mcp add react-native-guide node C:/mcp-servers/react-native-guide/build/index.js -s user
+        
+    - name: Verify Deployment
+      run: claude mcp list
