@@ -11,6 +11,18 @@ A comprehensive Model Context Protocol (MCP) server providing expert React Nativ
 
 ### Installation
 
+#### Option 1: NPM Package (Recommended)
+
+```bash
+# Install globally from npm
+npm install -g @mrnitro360/react-native-mcp-guide
+
+# Add to Claude CLI
+claude mcp add react-native-guide node "$(npm root -g)/@mrnitro360/react-native-mcp-guide/build/index.js"
+```
+
+#### Option 2: From Source
+
 ```bash
 # Clone the repository
 git clone https://github.com/MrNitro360/React-Native-MCP.git
@@ -25,6 +37,15 @@ npm run build
 # Add to Claude CLI (global access)
 claude mcp add react-native-guide node ./build/index.js -s user
 ```
+
+### Verification
+
+```bash
+# Verify installation
+claude mcp list
+```
+
+You should see `react-native-guide` listed and connected.
 
 ## 🎯 Features
 

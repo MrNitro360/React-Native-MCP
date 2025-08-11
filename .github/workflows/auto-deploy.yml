@@ -9,20 +9,26 @@ on:
       - 'tsconfig.json'
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: windows-latest
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
+        registry-url: 'https://registry.npmjs.org'
     
     - name: Install dependencies
       run: npm ci
+    
+    - name: Run tests
+      run: npm test
     
     - name: Build
       run: npm run build
@@ -36,5 +42,57 @@ jobs:
         claude mcp remove react-native-guide
         claude mcp add react-native-guide node C:/mcp-servers/react-native-guide/build/index.js -s user
         
-    - name: Verify Deployment
+    - name: Verify Local Deployment
       run: claude mcp list
+    
+    - name: Check if version changed
+      id: version-check
+      run: |
+        $currentVersion = (Get-Content package.json | ConvertFrom-Json).version
+        $lastCommit = git log --oneline -1
+        if ($lastCommit -match "v?\d+\.\d+\.\d+") {
+          echo "version-changed=true" >> $env:GITHUB_OUTPUT
+          echo "new-version=$currentVersion" >> $env:GITHUB_OUTPUT
+        } else {
+          echo "version-changed=false" >> $env:GITHUB_OUTPUT
+        }
+    
+    - name: Auto-increment version
+      if: steps.version-check.outputs.version-changed == 'false'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        npm version patch --no-git-tag-version
+        $newVersion = (Get-Content package.json | ConvertFrom-Json).version
+        git add package.json
+        git commit -m "Auto-increment version to v$newVersion [skip ci]"
+        git push
+        echo "new-version=$newVersion" >> $env:GITHUB_OUTPUT
+      id: auto-version
+    
+    - name: Publish to npm
+      if: always() && (steps.version-check.outputs.version-changed == 'true' || steps.auto-version.outputs.new-version)
+      run: npm publish --access public
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    
+    - name: Create GitHub Release
+      if: always() && (steps.version-check.outputs.version-changed == 'true' || steps.auto-version.outputs.new-version)
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.version-check.outputs.new-version || steps.auto-version.outputs.new-version }}
+        release_name: Release v${{ steps.version-check.outputs.new-version || steps.auto-version.outputs.new-version }}
+        body: |
+          ## What's Changed
+          - Auto-deployed React Native MCP Server
+          - Enhanced analysis tools and user notifications
+          
+          ## Installation
+          ```bash
+          npm install -g @mrnitro360/react-native-mcp-guide@latest
+          claude mcp add react-native-guide node "$(npm root -g)/@mrnitro360/react-native-mcp-guide/build/index.js"
+          ```
+        draft: false
+        prerelease: false
