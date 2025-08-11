@@ -5,6 +5,7 @@ A Model Context Protocol (MCP) server providing comprehensive guidance and best 
 ## Overview
 
 This MCP server offers:
+
 - **Tools**: Analyze React Native code, optimize performance, get architecture advice, and debug issues
 - **Resources**: Access to React Native documentation, best practices, performance guides, and platform-specific guides
 - **Prompts**: Templates for code reviews, architecture design, performance optimization, debugging assistance, migration guidance, and testing strategies
@@ -38,11 +39,15 @@ This MCP server offers:
 ## Installation
 
 1. Clone or download this repository
+
 2. Install dependencies:
+
    ```bash
    npm install
    ```
+
 3. Build the project:
+
    ```bash
    npm run build
    ```
@@ -52,11 +57,13 @@ This MCP server offers:
 ### Running the Server
 
 Start the server with stdio transport:
+
 ```bash
 npm start
 ```
 
 Or run directly:
+
 ```bash
 node build/index.js
 ```
@@ -84,6 +91,7 @@ For Claude Desktop or other MCP clients, add this server to your configuration:
 ### Example Usage
 
 #### Tool Usage
+
 ```javascript
 // Analyze a React Native component
 {
@@ -105,6 +113,7 @@ For Claude Desktop or other MCP clients, add this server to your configuration:
 ```
 
 #### Resource Access
+
 ```javascript
 // Access best practices guide
 {
@@ -119,6 +128,7 @@ For Claude Desktop or other MCP clients, add this server to your configuration:
 ```
 
 #### Prompt Usage
+
 ```javascript
 // Code review prompt
 {
@@ -144,7 +154,7 @@ For Claude Desktop or other MCP clients, add this server to your configuration:
 
 ### Project Structure
 
-```
+```text
 src/
 ├── index.ts          # Main server entry point
 ├── tools/           # Tool implementations
@@ -164,6 +174,7 @@ npm run build
 ### Development Mode
 
 For development with auto-reload:
+
 ```bash
 npm run dev
 ```
@@ -171,36 +182,42 @@ npm run dev
 ## Key Capabilities
 
 ### Component Analysis
+
 - Code quality assessment
 - Performance optimization suggestions
 - Best practices validation
 - Accessibility compliance checking
 
 ### Architecture Guidance
+
 - Project structure recommendations
 - State management strategies
 - Navigation patterns
 - Platform-specific considerations
 
 ### Performance Optimization
+
 - Rendering optimization
 - Memory management
 - Bundle size optimization
 - Animation performance
 
 ### Debugging Assistance
+
 - Common error resolution
 - Platform-specific debugging
 - Performance profiling guidance
 - Development tool recommendations
 
 ### Migration Support
+
 - Version upgrade guidance
 - Breaking changes documentation
 - Migration planning
 - Compatibility assessment
 
 ### Testing Strategies
+
 - Unit testing approaches
 - Integration testing patterns
 - E2E testing setup
