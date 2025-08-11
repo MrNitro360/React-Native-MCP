@@ -1,0 +1,42 @@
+{
+  "name": "react-native-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for React Native best practices guidance",
+  "type": "module",
+  "main": "build/index.js",
+  "bin": {
+    "react-native-mcp": "./build/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node build/index.js",
+    "test": "jest"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol", 
+    "react-native",
+    "best-practices",
+    "development-guide"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "build/"
+  ]
+}
