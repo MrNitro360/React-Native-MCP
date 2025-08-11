@@ -10,6 +10,11 @@ on:
       - '.github/workflows/**'
   workflow_dispatch: # Allow manual triggering
 
+permissions:
+  contents: write
+  packages: write
+  pull-requests: read
+
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
@@ -96,7 +101,7 @@ jobs:
     
     - name: Create GitHub Release
       if: steps.version-check.outputs.should-publish == 'true'
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ steps.final-version.outputs.version }}
         name: Release v${{ steps.final-version.outputs.version }}
@@ -133,8 +138,16 @@ jobs:
         draft: false
         prerelease: false
         generate_release_notes: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        fail_on_unmatched_files: false
+    
+    - name: Create Git Tag (fallback)
+      if: steps.version-check.outputs.should-publish == 'true' && failure()
+      run: |
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git tag v${{ steps.final-version.outputs.version }}
+        git push origin v${{ steps.final-version.outputs.version }}
+        echo "Created git tag as fallback"
     
     - name: Build and Publish Summary
       run: |
