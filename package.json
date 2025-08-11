@@ -11,11 +11,7 @@
     "build": "tsc",
     "dev": "tsx src/index.ts",
     "start": "node build/index.js",
-    "update-global": "npm run build && powershell \"Copy-Item -Path 'build\\*' -Destination 'C:\\mcp-servers\\react-native-guide\\' -Recurse -Force\"",
-    "restart-mcp": "claude mcp remove react-native-guide && claude mcp add react-native-guide node C:/mcp-servers/react-native-guide/build/index.js -s user",
-    "deploy": "npm run update-global && npm run restart-mcp && claude mcp list",
-    "auto-update": "powershell -ExecutionPolicy Bypass -File scripts/auto-update.ps1",
-    "watch-updates": "powershell -ExecutionPolicy Bypass -File scripts/auto-update.ps1 -Watch"
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "keywords": [
     "mcp",

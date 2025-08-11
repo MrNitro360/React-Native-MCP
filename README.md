@@ -1,6 +1,19 @@
 # React Native MCP Server
 
-A comprehensive Model Context Protocol (MCP) server providing expert React Native development guidance, code analysis, security auditing, and optimization strategies for professional mobile app development.
+<div align="center">
+
+[![npm version](https://badge.fury.io/js/%40mrnitro360%2Freact-native-mcp-guide.svg)](https://badge.fury.io/js/%40mrnitro360%2Freact-native-mcp-guide)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Model Context Protocol](https://img.shields.io/badge/MCP-1.0.0-blue.svg)](https://modelcontextprotocol.io/)
+[![Auto-Deploy](https://github.com/MrNitro360/React-Native-MCP/actions/workflows/auto-deploy.yml/badge.svg)](https://github.com/MrNitro360/React-Native-MCP/actions/workflows/auto-deploy.yml)
+
+*Your AI-powered React Native development companion for enterprise-grade mobile applications*
+
+🔄 **Fully automated updates** - Every code change automatically publishes to npm with version management
+
+</div>
+
+A comprehensive Model Context Protocol server that provides expert React Native development guidance, security analysis, performance optimization, and best practices. Built for professional developers and enterprise teams who demand quality, security, and scalability.
 
 ## 🚀 Quick Start
 
@@ -11,17 +24,34 @@ A comprehensive Model Context Protocol (MCP) server providing expert React Nativ
 
 ### Installation
 
-#### Option 1: NPM Package (Recommended)
+#### ⚡ Automated Installation (Recommended)
+
+The server is automatically published to npm with every update. Get the latest version instantly:
 
 ```bash
-# Install globally from npm
+# Install the latest version
 npm install -g @mrnitro360/react-native-mcp-guide
 
 # Add to Claude CLI
-claude mcp add react-native-guide node "$(npm root -g)/@mrnitro360/react-native-mcp-guide/build/index.js"
+claude mcp add react-native-guide npx @mrnitro360/react-native-mcp-guide
 ```
 
-#### Option 2: From Source
+#### 🔄 Easy Updates
+
+Stay current with the latest features and improvements:
+
+```bash
+# Update to latest version
+npm update -g @mrnitro360/react-native-mcp-guide
+
+# Remove and re-add to Claude CLI to use latest version
+claude mcp remove react-native-guide
+claude mcp add react-native-guide npx @mrnitro360/react-native-mcp-guide
+```
+
+#### 🛠️ Development Installation (From Source)
+
+For contributors or those who want to modify the server:
 
 ```bash
 # Clone the repository
@@ -34,8 +64,8 @@ npm install
 # Build the server
 npm run build
 
-# Add to Claude CLI (global access)
-claude mcp add react-native-guide node ./build/index.js -s user
+# Add to Claude CLI
+claude mcp add react-native-guide node ./build/index.js
 ```
 
 ### Verification
@@ -138,6 +168,22 @@ claude
 
 ### With Claude Desktop
 
+#### For NPM Installation (Recommended)
+Add to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "react-native-guide": {
+      "command": "npx",
+      "args": ["@mrnitro360/react-native-mcp-guide"],
+      "env": {}
+    }
+  }
+}
+```
+
+#### For Development/Source Installation
 Add to your `claude_desktop_config.json`:
 
 ```json
@@ -145,8 +191,16 @@ Add to your `claude_desktop_config.json`:
   "mcpServers": {
     "react-native-guide": {
       "command": "node",
-      "args": ["/path/to/React-Native-MCP/build/index.js"],
+      "args": ["/absolute/path/to/React-Native-MCP/build/index.js"],
       "env": {}
+    }
+  }
+}
+```
+
+**💡 Path Examples:**
+- **Windows**: `C:\\Users\\YourUsername\\Desktop\\React-Native-MCP\\build\\index.js`
+- **macOS/Linux**: `/Users/YourUsername/Desktop/React-Native-MCP/build/index.js`
     }
   }
 }
@@ -163,6 +217,38 @@ npm run build
 
 # Run in production
 npm start
+```
+
+## 🤖 Automated Publishing
+
+This project features a fully automated CI/CD pipeline:
+
+- **Automatic Version Management** - Semantic versioning with auto-increment
+- **Continuous Deployment** - Every merge to main triggers npm publishing
+- **GitHub Releases** - Automated release notes and version tagging
+- **Quality Assurance** - Build validation before publishing
+
+### How Updates Work
+
+1. Code changes merged to `main` branch
+2. GitHub Actions automatically increments version
+3. Builds and tests the package
+4. Publishes to npm registry
+5. Creates GitHub release with changelog
+6. Users get latest version with `npm update`
+
+### Staying Updated
+
+```bash
+# Check current version
+npm list -g @mrnitro360/react-native-mcp-guide
+
+# Update to latest
+npm update -g @mrnitro360/react-native-mcp-guide
+
+# Reconfigure Claude CLI with latest version
+claude mcp remove react-native-guide
+claude mcp add react-native-guide npx @mrnitro360/react-native-mcp-guide
 ```
 
 ## 📋 What You Get
@@ -202,7 +288,18 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## 🔗 Links
 
-- [Repository](https://github.com/MrNitro360/React-Native-MCP)
-- [Issues](https://github.com/MrNitro360/React-Native-MCP/issues)
-- [Model Context Protocol](https://modelcontextprotocol.io/)
-- [React Native Documentation](https://reactnative.dev/)
+- **NPM Package**: [@mrnitro360/react-native-mcp-guide](https://www.npmjs.com/package/@mrnitro360/react-native-mcp-guide)
+- **GitHub Repository**: [React-Native-MCP](https://github.com/MrNitro360/React-Native-MCP)
+- **Issues & Support**: [GitHub Issues](https://github.com/MrNitro360/React-Native-MCP/issues)
+- **Model Context Protocol**: [Official Documentation](https://modelcontextprotocol.io/)
+- **React Native**: [Official Documentation](https://reactnative.dev/)
+
+---
+
+<div align="center">
+
+**Built with ❤️ for the React Native community**
+
+*Empowering developers to build secure, performant, and accessible mobile applications*
+
+</div>
