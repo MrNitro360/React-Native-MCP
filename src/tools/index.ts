@@ -14,6 +14,9 @@ export class ReactNativeTools {
   constructor(private server: McpServer) {}
 
   register() {
+    // Register all testing tools
+    this.register_test_generation();
+    
     // Component Analysis Tool - Enhanced with codebase support
     this.server.tool(
       "analyze_component",
@@ -2654,5 +2657,1173 @@ const fetchData = async () => {
     }
     
     return report;
+  }
+
+  // React Native Component Test Generation Tool
+  register_test_generation() {
+    this.server.tool(
+      "generate_component_test",
+      "Generate comprehensive React Native component tests following industry best practices",
+      {
+        component_code: z.string().describe("React Native component code to generate tests for"),
+        component_name: z.string().describe("Name of the component"),
+        test_type: z.enum(["unit", "integration", "e2e", "comprehensive"]).default("comprehensive").describe("Type of tests to generate"),
+        testing_framework: z.enum(["jest", "detox", "maestro"]).default("jest").describe("Testing framework preference"),
+        include_accessibility: z.boolean().default(true).describe("Include accessibility tests"),
+        include_performance: z.boolean().default(true).describe("Include performance tests"),
+        include_snapshot: z.boolean().default(true).describe("Include snapshot tests")
+      },
+      async ({ component_code, component_name, test_type, testing_framework, include_accessibility, include_performance, include_snapshot }) => {
+        const testCode = this.generateComponentTests({
+          component_code,
+          component_name,
+          test_type,
+          testing_framework,
+          include_accessibility,
+          include_performance,
+          include_snapshot
+        });
+        
+        return {
+          content: [
+            {
+              type: "text",
+              text: testCode
+            }
+          ]
+        };
+      }
+    );
+
+    // Testing Strategy Analysis Tool
+    this.server.tool(
+      "analyze_testing_strategy",
+      "Analyze current testing strategy and provide recommendations",
+      {
+        project_path: z.string().optional().describe("Path to React Native project root"),
+        focus_areas: z.array(z.enum(["unit", "integration", "e2e", "accessibility", "performance", "security"])).default(["unit", "integration", "accessibility"]).describe("Areas to focus testing analysis on")
+      },
+      async ({ project_path, focus_areas }) => {
+        const analysis = await this.analyzeTestingStrategy(project_path || process.cwd(), focus_areas);
+        
+        return {
+          content: [
+            {
+              type: "text",
+              text: analysis
+            }
+          ]
+        };
+      }
+    );
+
+    // Test Coverage Analysis Tool
+    this.server.tool(
+      "analyze_test_coverage",
+      "Analyze test coverage and identify gaps",
+      {
+        project_path: z.string().optional().describe("Path to React Native project root"),
+        coverage_threshold: z.number().default(80).describe("Minimum coverage threshold percentage"),
+        generate_report: z.boolean().default(true).describe("Generate detailed coverage report")
+      },
+      async ({ project_path, coverage_threshold, generate_report }) => {
+        const coverageAnalysis = await this.analyzeTestCoverage(project_path || process.cwd(), coverage_threshold, generate_report);
+        
+        return {
+          content: [
+            {
+              type: "text", 
+              text: coverageAnalysis
+            }
+          ]
+        };
+      }
+    );
+  }
+
+  private generateComponentTests(options: {
+    component_code: string;
+    component_name: string;
+    test_type: string;
+    testing_framework: string;
+    include_accessibility: boolean;
+    include_performance: boolean;
+    include_snapshot: boolean;
+  }): string {
+    const { 
+      component_code, 
+      component_name, 
+      test_type, 
+      testing_framework, 
+      include_accessibility, 
+      include_performance, 
+      include_snapshot 
+    } = options;
+
+    // Analyze component to understand its structure
+    const componentAnalysis = this.analyzeComponentStructure(component_code);
+    
+    let testCode = `// ${component_name} Test Suite
+// Generated following React Native testing best practices
+// Testing Framework: ${testing_framework}
+// Test Type: ${test_type}
+
+import React from 'react';
+import { render, fireEvent, waitFor, screen } from '@testing-library/react-native';
+import { jest } from '@jest/globals';
+${include_accessibility ? "import { axe, toHaveNoViolations } from 'jest-axe';\nimport '@testing-library/jest-native/extend-expect';" : ""}
+${include_performance ? "import { measurePerformance } from '@shopify/react-native-performance';" : ""}
+import ${component_name} from './${component_name}';
+
+${include_accessibility ? "expect.extend(toHaveNoViolations);" : ""}
+
+describe('${component_name}', () => {
+  // Test Setup
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  // Basic Rendering Tests
+  describe('Rendering', () => {
+    test('renders without crashing', () => {
+      const { getByTestId } = render(<${component_name} />);
+      expect(getByTestId('${component_name.toLowerCase()}')).toBeTruthy();
+    });
+
+${include_snapshot ? `    test('matches snapshot', () => {
+      const tree = render(<${component_name} />).toJSON();
+      expect(tree).toMatchSnapshot();
+    });` : ""}
+
+    test('renders with default props', () => {
+      const { getByTestId } = render(<${component_name} />);
+      const component = getByTestId('${component_name.toLowerCase()}');
+      expect(component).toBeDefined();
+    });
+  });
+`;
+
+    // Add prop-specific tests
+    if (componentAnalysis.props.length > 0) {
+      testCode += `
+  // Props Tests
+  describe('Props', () => {
+${componentAnalysis.props.map(prop => `    test('handles ${prop.name} prop correctly', () => {
+      const test${prop.name} = ${this.generateMockValue(prop.type)};
+      const { getByTestId } = render(<${component_name} ${prop.name}={test${prop.name}} />);
+      const component = getByTestId('${component_name.toLowerCase()}');
+      ${this.generatePropAssertion(prop)}
+    });`).join('\n\n')}
+  });
+`;
+    }
+
+    // Add interaction tests
+    if (componentAnalysis.interactions.length > 0) {
+      testCode += `
+  // Interaction Tests
+  describe('User Interactions', () => {
+${componentAnalysis.interactions.map(interaction => `    test('handles ${interaction.name} correctly', async () => {
+      const mock${interaction.name} = jest.fn();
+      const { getByTestId } = render(<${component_name} ${interaction.prop}={mock${interaction.name}} />);
+      
+      const ${interaction.element} = getByTestId('${interaction.testId}');
+      fireEvent.${interaction.event}(${interaction.element});
+      
+      ${interaction.async ? 'await waitFor(() => {' : ''}
+        expect(mock${interaction.name}).toHaveBeenCalled();
+      ${interaction.async ? '});' : ''}
+    });`).join('\n\n')}
+  });
+`;
+    }
+
+    // Add accessibility tests
+    if (include_accessibility) {
+      testCode += `
+  // Accessibility Tests
+  describe('Accessibility', () => {
+    test('has no accessibility violations', async () => {
+      const { container } = render(<${component_name} />);
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
+
+    test('supports screen reader navigation', () => {
+      const { getByTestId } = render(<${component_name} />);
+      const component = getByTestId('${component_name.toLowerCase()}');
+      
+      expect(component).toHaveAccessibilityRole('${this.inferAccessibilityRole(component_code)}');
+      expect(component).toHaveAccessibilityState({ disabled: false });
+    });
+
+    test('has proper accessibility labels', () => {
+      const { getByLabelText } = render(<${component_name} />);
+      expect(getByLabelText(/${component_name}/i)).toBeTruthy();
+    });
+
+    test('supports keyboard navigation', () => {
+      const { getByTestId } = render(<${component_name} />);
+      const component = getByTestId('${component_name.toLowerCase()}');
+      
+      expect(component).toHaveAccessibilityState({ focusable: true });
+    });
+  });
+`;
+    }
+
+    // Add performance tests
+    if (include_performance) {
+      testCode += `
+  // Performance Tests
+  describe('Performance', () => {
+    test('renders within acceptable time', async () => {
+      const startTime = performance.now();
+      render(<${component_name} />);
+      const endTime = performance.now();
+      
+      const renderTime = endTime - startTime;
+      expect(renderTime).toBeLessThan(16); // 60fps = 16ms per frame
+    });
+
+    test('handles large datasets efficiently', () => {
+      const largeDataset = Array.from({ length: 1000 }, (_, i) => ({ id: i, name: \`Item \${i}\` }));
+      
+      const startTime = performance.now();
+      render(<${component_name} data={largeDataset} />);
+      const endTime = performance.now();
+      
+      const renderTime = endTime - startTime;
+      expect(renderTime).toBeLessThan(100); // Should render large datasets quickly
+    });
+
+    test('does not cause memory leaks', () => {
+      const { unmount } = render(<${component_name} />);
+      const initialMemory = performance.memory?.usedJSHeapSize || 0;
+      
+      unmount();
+      
+      // Force garbage collection if available
+      if (global.gc) {
+        global.gc();
+      }
+      
+      const finalMemory = performance.memory?.usedJSHeapSize || 0;
+      expect(finalMemory).toBeLessThanOrEqual(initialMemory + 1000000); // Allow 1MB tolerance
+    });
+  });
+`;
+    }
+
+    // Add error boundary tests
+    testCode += `
+  // Error Handling Tests
+  describe('Error Handling', () => {
+    test('handles errors gracefully', () => {
+      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+      
+      expect(() => {
+        render(<${component_name} invalidProp="test" />);
+      }).not.toThrow();
+      
+      consoleError.mockRestore();
+    });
+
+    test('displays fallback UI when children error', () => {
+      const ThrowError = () => {
+        throw new Error('Test error');
+      };
+      
+      const { getByText } = render(
+        <${component_name}>
+          <ThrowError />
+        </${component_name}>
+      );
+      
+      expect(getByText(/something went wrong/i)).toBeTruthy();
+    });
+  });
+`;
+
+    // Add integration tests for comprehensive testing
+    if (test_type === 'comprehensive' || test_type === 'integration') {
+      testCode += `
+  // Integration Tests
+  describe('Integration', () => {
+    test('integrates with navigation', () => {
+      const mockNavigation = {
+        navigate: jest.fn(),
+        goBack: jest.fn(),
+        dispatch: jest.fn(),
+      };
+      
+      const { getByTestId } = render(<${component_name} navigation={mockNavigation} />);
+      // Add specific navigation integration tests
+    });
+
+    test('integrates with state management', () => {
+      // Mock Redux/Context store
+      const mockStore = {
+        getState: jest.fn(() => ({})),
+        dispatch: jest.fn(),
+        subscribe: jest.fn(),
+      };
+      
+      // Add state management integration tests
+    });
+
+    test('handles API calls correctly', async () => {
+      const mockApiCall = jest.fn().mockResolvedValue({ data: 'test' });
+      
+      const { getByTestId } = render(<${component_name} apiCall={mockApiCall} />);
+      
+      await waitFor(() => {
+        expect(mockApiCall).toHaveBeenCalled();
+      });
+    });
+  });
+`;
+    }
+
+    testCode += `});
+
+// Test Utilities
+export const ${component_name}TestUtils = {
+  // Custom render function with providers
+  renderWithProviders: (ui: React.ReactElement, options = {}) => {
+    const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
+      return (
+        // Add your providers here (Navigation, Theme, Store, etc.)
+        <>{children}</>
+      );
+    };
+    
+    return render(ui, { wrapper: AllTheProviders, ...options });
+  },
+
+  // Mock data generators
+  generateMockProps: () => ({
+    // Generate mock props for ${component_name}
+  }),
+
+  // Common test scenarios
+  testScenarios: {
+    default: {},
+    loading: { isLoading: true },
+    error: { error: 'Test error' },
+    empty: { data: [] },
+  },
+};
+
+// Performance benchmarks
+export const ${component_name}Benchmarks = {
+  renderTime: 16, // ms
+  memoryUsage: 1000000, // bytes
+  interactionResponse: 100, // ms
+};
+`;
+
+    return testCode;
+  }
+
+  private analyzeComponentStructure(componentCode: string) {
+    // Basic analysis of component structure
+    const props: Array<{ name: string; type: string; required: boolean }> = [];
+    const interactions: Array<{ 
+      name: string; 
+      prop: string; 
+      element: string; 
+      event: string; 
+      testId: string; 
+      async: boolean;
+    }> = [];
+    
+    // Extract props from TypeScript interfaces or PropTypes
+    const interfaceMatch = componentCode.match(/interface\s+\w+Props\s*{([^}]*)}/);
+    if (interfaceMatch) {
+      const propsText = interfaceMatch[1];
+      const propMatches = propsText.match(/(\w+)(\?)?:\s*([^;]+);/g);
+      if (propMatches) {
+        propMatches.forEach(match => {
+          const [, name, optional, type] = match.match(/(\w+)(\?)?:\s*([^;]+);/) || [];
+          if (name && type) {
+            props.push({
+              name,
+              type: type.trim(),
+              required: !optional
+            });
+          }
+        });
+      }
+    }
+
+    // Extract common interaction patterns
+    const eventHandlers = componentCode.match(/on\w+\s*[:=]/g);
+    if (eventHandlers) {
+      eventHandlers.forEach(handler => {
+        const handlerName = handler.replace(/[:=]/g, '').trim();
+        interactions.push({
+          name: handlerName,
+          prop: handlerName,
+          element: 'button',
+          event: this.inferEventType(handlerName),
+          testId: `${handlerName.toLowerCase()}-button`,
+          async: handlerName.includes('async') || handlerName.includes('Submit')
+        });
+      });
+    }
+
+    return { props, interactions };
+  }
+
+  private generateMockValue(type: string): string {
+    const typeMap: { [key: string]: string } = {
+      'string': "'test string'",
+      'number': '42',
+      'boolean': 'true',
+      'object': '{}',
+      'array': '[]',
+      'function': 'jest.fn()',
+      'Date': 'new Date()',
+      'undefined': 'undefined',
+      'null': 'null'
+    };
+
+    const lowerType = type.toLowerCase();
+    for (const [key, value] of Object.entries(typeMap)) {
+      if (lowerType.includes(key)) {
+        return value;
+      }
+    }
+
+    return "''"; // Default fallback
+  }
+
+  private generatePropAssertion(prop: { name: string; type: string; required: boolean }): string {
+    if (prop.type.toLowerCase().includes('string')) {
+      return `expect(component).toHaveTextContent('test string');`;
+    } else if (prop.type.toLowerCase().includes('boolean')) {
+      return `expect(component).toHaveAccessibilityState({ [${prop.name}]: true });`;
+    } else if (prop.type.toLowerCase().includes('function')) {
+      return `// Function prop assertions would be handled in interaction tests`;
+    }
+    
+    return `expect(component).toBeDefined();`;
+  }
+
+  private inferEventType(handlerName: string): string {
+    const eventMap: { [key: string]: string } = {
+      'press': 'press',
+      'tap': 'press', 
+      'click': 'press',
+      'change': 'changeText',
+      'focus': 'focus',
+      'blur': 'blur',
+      'submit': 'press',
+      'scroll': 'scroll'
+    };
+
+    const lowerHandler = handlerName.toLowerCase();
+    for (const [key, event] of Object.entries(eventMap)) {
+      if (lowerHandler.includes(key)) {
+        return event;
+      }
+    }
+
+    return 'press'; // Default fallback
+  }
+
+  private inferAccessibilityRole(componentCode: string): string {
+    if (componentCode.includes('TouchableOpacity') || componentCode.includes('Pressable')) {
+      return 'button';
+    } else if (componentCode.includes('TextInput')) {
+      return 'textbox';
+    } else if (componentCode.includes('Text')) {
+      return 'text';
+    } else if (componentCode.includes('Image')) {
+      return 'image';
+    } else if (componentCode.includes('ScrollView') || componentCode.includes('FlatList')) {
+      return 'scrollbar';
+    }
+    
+    return 'none';
+  }
+
+  private async analyzeTestingStrategy(projectPath: string, focusAreas: string[]): Promise<string> {
+    let analysis = `# 🧪 React Native Testing Strategy Analysis\n\n`;
+    
+    try {
+      // Check for existing test files
+      const testFiles = await this.findTestFiles(projectPath);
+      analysis += `## 📊 Current Test Coverage\n\n`;
+      analysis += `- **Test Files Found**: ${testFiles.length}\n`;
+      analysis += `- **Test Types Detected**: ${this.detectTestTypes(testFiles).join(', ')}\n\n`;
+
+      // Check package.json for testing dependencies
+      const packageJsonPath = path.join(projectPath, 'package.json');
+      if (fs.existsSync(packageJsonPath)) {
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+        const testingDeps = this.analyzeTestingDependencies(packageJson);
+        
+        analysis += `## 🛠️ Testing Dependencies\n\n`;
+        analysis += `### Installed:\n`;
+        testingDeps.installed.forEach(dep => {
+          analysis += `- ✅ ${dep}\n`;
+        });
+        
+        analysis += `\n### Recommended Additions:\n`;
+        testingDeps.recommended.forEach(dep => {
+          analysis += `- 🎯 ${dep.name}: ${dep.purpose}\n`;
+        });
+      }
+
+      // Analyze each focus area
+      for (const area of focusAreas) {
+        analysis += `\n## ${this.getAreaEmoji(area)} ${area.charAt(0).toUpperCase() + area.slice(1)} Testing\n\n`;
+        analysis += await this.analyzeFocusArea(projectPath, area);
+      }
+
+      // Provide comprehensive recommendations
+      analysis += `\n## 🎯 Strategic Recommendations\n\n`;
+      analysis += this.generateTestingRecommendations(testFiles.length, focusAreas);
+
+      // Add testing setup guide
+      analysis += `\n## 🚀 Quick Setup Guide\n\n`;
+      analysis += this.generateTestingSetupGuide();
+
+    } catch (error) {
+      analysis += `❌ Error analyzing project: ${error}\n\n`;
+      analysis += `Please ensure the project path is correct and accessible.\n`;
+    }
+
+    return analysis;
+  }
+
+  private async findTestFiles(projectPath: string): Promise<string[]> {
+    const testFiles: string[] = [];
+    const testPatterns = [
+      /\.test\.(js|jsx|ts|tsx)$/,
+      /\.spec\.(js|jsx|ts|tsx)$/,
+      /__tests__.*\.(js|jsx|ts|tsx)$/
+    ];
+
+    const walkDir = (dir: string) => {
+      if (!fs.existsSync(dir)) return;
+      
+      const files = fs.readdirSync(dir);
+      for (const file of files) {
+        const filePath = path.join(dir, file);
+        const stat = fs.statSync(filePath);
+        
+        if (stat.isDirectory() && !file.startsWith('.') && file !== 'node_modules') {
+          walkDir(filePath);
+        } else if (stat.isFile()) {
+          if (testPatterns.some(pattern => pattern.test(file))) {
+            testFiles.push(filePath);
+          }
+        }
+      }
+    };
+
+    walkDir(projectPath);
+    return testFiles;
+  }
+
+  private detectTestTypes(testFiles: string[]): string[] {
+    const types = new Set<string>();
+    
+    testFiles.forEach(file => {
+      const content = fs.readFileSync(file, 'utf8');
+      
+      if (content.includes('@testing-library/react-native')) types.add('Unit');
+      if (content.includes('detox')) types.add('E2E');
+      if (content.includes('toMatchSnapshot')) types.add('Snapshot');
+      if (content.includes('accessibility')) types.add('Accessibility');
+      if (content.includes('performance')) types.add('Performance');
+      if (content.includes('integration')) types.add('Integration');
+    });
+
+    return Array.from(types);
+  }
+
+  private analyzeTestingDependencies(packageJson: any): { installed: string[], recommended: Array<{ name: string, purpose: string }> } {
+    const allDeps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+    const testingPackages = [
+      'jest',
+      '@testing-library/react-native',
+      '@testing-library/jest-native',
+      'react-test-renderer',
+      'detox',
+      'maestro-cli',
+      'jest-axe',
+      '@shopify/react-native-performance'
+    ];
+
+    const installed = testingPackages.filter(pkg => allDeps[pkg]);
+    const recommended = [
+      { name: '@testing-library/react-native', purpose: 'Component testing with best practices' },
+      { name: '@testing-library/jest-native', purpose: 'Additional React Native matchers' },
+      { name: 'react-test-renderer', purpose: 'Snapshot testing' },
+      { name: 'jest-axe', purpose: 'Accessibility testing' },
+      { name: 'detox', purpose: 'End-to-end testing' },
+      { name: '@shopify/react-native-performance', purpose: 'Performance testing' },
+      { name: 'flipper-plugin-react-native-performance', purpose: 'Performance monitoring' }
+    ].filter(pkg => !installed.includes(pkg.name));
+
+    return { installed, recommended };
+  }
+
+  private getAreaEmoji(area: string): string {
+    const emojiMap: { [key: string]: string } = {
+      'unit': '🔧',
+      'integration': '🔗',
+      'e2e': '🎭',
+      'accessibility': '♿',
+      'performance': '⚡',
+      'security': '🔒'
+    };
+    return emojiMap[area] || '📋';
+  }
+
+  private async analyzeFocusArea(projectPath: string, area: string): Promise<string> {
+    switch (area) {
+      case 'unit':
+        return this.analyzeUnitTesting(projectPath);
+      case 'integration':
+        return this.analyzeIntegrationTesting(projectPath);
+      case 'e2e':
+        return this.analyzeE2ETesting(projectPath);
+      case 'accessibility':
+        return this.analyzeAccessibilityTesting(projectPath);
+      case 'performance':
+        return this.analyzePerformanceTesting(projectPath);
+      case 'security':
+        return this.analyzeSecurityTesting(projectPath);
+      default:
+        return `Analysis for ${area} is not yet implemented.\n`;
+    }
+  }
+
+  private analyzeUnitTesting(projectPath: string): string {
+    return `### Current State:
+- **Framework**: Jest (recommended for React Native)
+- **Library**: @testing-library/react-native
+- **Coverage**: Run \`npm test -- --coverage\` to check
+
+### Best Practices:
+1. **Test Structure**: Arrange, Act, Assert
+2. **Mock External Dependencies**: APIs, navigation, storage
+3. **Test User Interactions**: Not implementation details
+4. **Snapshot Testing**: For UI regression detection
+
+### Example Test:
+\`\`\`javascript
+import { render, fireEvent } from '@testing-library/react-native';
+import MyButton from '../MyButton';
+
+test('calls onPress when pressed', () => {
+  const mockOnPress = jest.fn();
+  const { getByText } = render(<MyButton onPress={mockOnPress} title="Test" />);
+  
+  fireEvent.press(getByText('Test'));
+  expect(mockOnPress).toHaveBeenCalled();
+});
+\`\`\`
+`;
+  }
+
+  private analyzeIntegrationTesting(projectPath: string): string {
+    return `### Focus Areas:
+- **Navigation Flow**: Screen-to-screen transitions
+- **State Management**: Redux/Context integration
+- **API Integration**: HTTP requests and responses
+- **Form Validation**: Multi-step forms
+
+### Recommended Approach:
+1. **Mock External Services**: Use MSW or similar
+2. **Test User Journeys**: Complete workflows
+3. **Test Error Scenarios**: Network failures, validation errors
+
+### Example:
+\`\`\`javascript
+test('user can complete login flow', async () => {
+  const { getByText, getByPlaceholderText } = render(<LoginScreen />);
+  
+  fireEvent.changeText(getByPlaceholderText('Email'), 'test@example.com');
+  fireEvent.changeText(getByPlaceholderText('Password'), 'password123');
+  fireEvent.press(getByText('Login'));
+  
+  await waitFor(() => {
+    expect(getByText('Welcome')).toBeTruthy();
+  });
+});
+\`\`\`
+`;
+  }
+
+  private analyzeE2ETesting(projectPath: string): string {
+    return `### Recommended Tools:
+- **Detox**: Popular React Native E2E framework
+- **Maestro**: Simple, declarative mobile UI testing
+- **Appium**: Cross-platform automation
+
+### Key Test Scenarios:
+1. **Critical User Paths**: Registration, login, checkout
+2. **Platform-Specific Features**: Push notifications, deep links
+3. **Performance**: App startup, navigation speed
+4. **Offline Scenarios**: Network connectivity issues
+
+### Detox Setup:
+\`\`\`bash
+npm install --save-dev detox
+npx detox init
+\`\`\`
+
+### Example Test:
+\`\`\`javascript
+describe('Login Flow', () => {
+  it('should login successfully', async () => {
+    await element(by.id('email-input')).typeText('test@example.com');
+    await element(by.id('password-input')).typeText('password123');
+    await element(by.id('login-button')).tap();
+    await expect(element(by.text('Welcome'))).toBeVisible();
+  });
+});
+\`\`\`
+`;
+  }
+
+  private analyzeAccessibilityTesting(projectPath: string): string {
+    return `### Testing Areas:
+- **Screen Reader Support**: VoiceOver, TalkBack
+- **Focus Management**: Keyboard navigation
+- **Color Contrast**: WCAG compliance
+- **Semantic Elements**: Proper roles and labels
+
+### Tools:
+- **jest-axe**: Automated accessibility testing
+- **@testing-library/react-native**: Built-in accessibility queries
+- **Manual Testing**: Real device testing with screen readers
+
+### Example Tests:
+\`\`\`javascript
+import { axe, toHaveNoViolations } from 'jest-axe';
+
+test('has no accessibility violations', async () => {
+  const { container } = render(<MyComponent />);
+  const results = await axe(container);
+  expect(results).toHaveNoViolations();
+});
+
+test('supports screen reader', () => {
+  const { getByLabelText } = render(<MyButton />);
+  expect(getByLabelText('Submit form')).toBeTruthy();
+});
+\`\`\`
+
+### Manual Testing Checklist:
+- [ ] Enable VoiceOver/TalkBack and navigate the app
+- [ ] Test with high contrast mode
+- [ ] Verify focus indicators are visible
+- [ ] Check minimum touch target sizes (44x44 points)
+`;
+  }
+
+  private analyzePerformanceTesting(projectPath: string): string {
+    return `### Performance Metrics:
+- **Render Time**: Component mount duration
+- **Memory Usage**: Heap size monitoring
+- **Bundle Size**: JavaScript bundle analysis
+- **Frame Rate**: 60fps maintenance
+
+### Tools:
+- **@shopify/react-native-performance**: Performance monitoring
+- **Flipper**: Real-time performance insights
+- **Metro Bundle Analyzer**: Bundle size analysis
+- **React DevTools Profiler**: Component performance
+
+### Example Tests:
+\`\`\`javascript
+test('renders within performance budget', () => {
+  const startTime = performance.now();
+  render(<MyComponent />);
+  const endTime = performance.now();
+  
+  expect(endTime - startTime).toBeLessThan(16); // 60fps
+});
+
+test('handles large lists efficiently', () => {
+  const largeData = Array.from({ length: 1000 }, (_, i) => ({ id: i }));
+  const { getByTestId } = render(<MyList data={largeData} />);
+  
+  // Should render virtualized list efficiently
+  expect(getByTestId('list')).toBeTruthy();
+});
+\`\`\`
+
+### Performance Budget:
+- **First Paint**: < 1000ms
+- **Interactive**: < 3000ms
+- **Frame Rate**: 60fps (16ms per frame)
+- **Memory**: < 100MB baseline
+`;
+  }
+
+  private analyzeSecurityTesting(projectPath: string): string {
+    return `### Security Test Areas:
+- **Data Validation**: Input sanitization
+- **Authentication**: Token handling, biometrics
+- **Storage Security**: Keychain, encrypted storage
+- **Network Security**: Certificate pinning, HTTPS
+
+### Common Vulnerabilities:
+1. **Insecure Data Storage**: Sensitive data in plain text
+2. **Weak Authentication**: Poor session management
+3. **Code Injection**: Dynamic code execution
+4. **Man-in-the-Middle**: Unvalidated certificates
+
+### Example Tests:
+\`\`\`javascript
+test('sanitizes user input', () => {
+  const maliciousInput = '<script>alert("xss")</script>';
+  const { getByDisplayValue } = render(<TextInput value={maliciousInput} />);
+  
+  // Should escape or sanitize malicious input
+  expect(getByDisplayValue()).not.toContain('<script>');
+});
+
+test('uses secure storage', async () => {
+  const sensitiveData = 'user-token-123';
+  await SecureStorage.setItem('token', sensitiveData);
+  
+  // Should not be stored in plain text
+  const stored = await AsyncStorage.getItem('token');
+  expect(stored).toBeNull(); // Should use secure storage instead
+});
+\`\`\`
+
+### Security Checklist:
+- [ ] Use Keychain/Keystore for sensitive data
+- [ ] Implement certificate pinning
+- [ ] Validate all user inputs
+- [ ] Use HTTPS for all network requests
+- [ ] Implement proper session management
+`;
+  }
+
+  private generateTestingRecommendations(testFileCount: number, focusAreas: string[]): string {
+    let recommendations = '';
+
+    if (testFileCount === 0) {
+      recommendations += `### 🚨 Critical: No tests found
+1. **Start with unit tests** for core components
+2. **Set up Jest and Testing Library** immediately
+3. **Establish testing standards** and practices
+4. **Add pre-commit hooks** to ensure tests run
+
+`;
+    } else if (testFileCount < 10) {
+      recommendations += `### ⚠️ Low test coverage detected
+1. **Expand unit test coverage** to critical components
+2. **Add integration tests** for key user flows
+3. **Implement snapshot testing** for UI regression protection
+4. **Set coverage thresholds** in Jest config
+
+`;
+    } else {
+      recommendations += `### ✅ Good test foundation
+1. **Optimize existing tests** for better coverage
+2. **Add performance benchmarks** for critical paths
+3. **Enhance accessibility testing** coverage
+4. **Consider E2E testing** for complete user journeys
+
+`;
+    }
+
+    recommendations += `### 📋 Priority Action Items:
+1. **Install core testing dependencies**
+2. **Create component test templates**
+3. **Set up CI/CD test automation**
+4. **Establish coverage targets** (aim for 80%+)
+5. **Document testing patterns** for the team
+
+### 🎯 Focus Area Priorities:
+${focusAreas.map((area, index) => `${index + 1}. **${area.charAt(0).toUpperCase() + area.slice(1)} Testing** - ${this.getAreaPriority(area)}`).join('\n')}
+`;
+
+    return recommendations;
+  }
+
+  private getAreaPriority(area: string): string {
+    const priorities: { [key: string]: string } = {
+      'unit': 'Foundation for all other testing',
+      'integration': 'Critical for complex app flows',
+      'e2e': 'Essential for production confidence',
+      'accessibility': 'Required for inclusive design',
+      'performance': 'Key for user experience',
+      'security': 'Critical for data protection'
+    };
+    return priorities[area] || 'Important for overall quality';
+  }
+
+  private generateTestingSetupGuide(): string {
+    return `### 1. Install Dependencies
+\`\`\`bash
+npm install --save-dev jest @testing-library/react-native @testing-library/jest-native react-test-renderer
+\`\`\`
+
+### 2. Configure Jest (jest.config.js)
+\`\`\`javascript
+module.exports = {
+  preset: 'react-native',
+  setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'],
+  testPathIgnorePatterns: ['/node_modules/', '/android/', '/ios/'],
+  collectCoverageFrom: [
+    'src/**/*.{js,jsx,ts,tsx}',
+    '!src/**/*.d.ts',
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
+};
+\`\`\`
+
+### 3. Add Test Scripts (package.json)
+\`\`\`json
+{
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false"
+  }
+}
+\`\`\`
+
+### 4. Create Test Template
+\`\`\`javascript
+// __tests__/ComponentName.test.tsx
+import React from 'react';
+import { render, fireEvent } from '@testing-library/react-native';
+import ComponentName from '../ComponentName';
+
+describe('ComponentName', () => {
+  test('renders correctly', () => {
+    const { getByTestId } = render(<ComponentName />);
+    expect(getByTestId('component-name')).toBeTruthy();
+  });
+});
+\`\`\`
+`;
+  }
+
+  private async analyzeTestCoverage(projectPath: string, threshold: number, generateReport: boolean): Promise<string> {
+    let analysis = `# 📊 Test Coverage Analysis\n\n`;
+
+    try {
+      // Check if Jest is configured
+      const jestConfigExists = fs.existsSync(path.join(projectPath, 'jest.config.js')) ||
+                              fs.existsSync(path.join(projectPath, 'jest.config.json'));
+      
+      if (!jestConfigExists) {
+        analysis += `❌ **Jest configuration not found**\n`;
+        analysis += `Please set up Jest first before analyzing coverage.\n\n`;
+        return analysis;
+      }
+
+      // Run coverage analysis if requested
+      if (generateReport) {
+        analysis += `## 🔍 Running Coverage Analysis...\n\n`;
+        
+        try {
+          const execAsync = promisify(exec);
+          const { stdout, stderr } = await execAsync('npm test -- --coverage --silent', {
+            cwd: projectPath,
+            timeout: 30000
+          });
+
+          if (stderr && !stderr.includes('warning')) {
+            analysis += `⚠️ **Coverage command had issues:**\n\`\`\`\n${stderr}\n\`\`\`\n\n`;
+          }
+
+          // Parse coverage output
+          analysis += this.parseCoverageOutput(stdout, threshold);
+        } catch (error) {
+          analysis += `❌ **Failed to run coverage:**\n`;
+          analysis += `\`\`\`\n${error}\n\`\`\`\n\n`;
+          analysis += `**Possible solutions:**\n`;
+          analysis += `1. Ensure all dependencies are installed: \`npm install\`\n`;
+          analysis += `2. Check Jest configuration\n`;
+          analysis += `3. Verify test files exist\n\n`;
+        }
+      }
+
+      // Provide coverage improvement suggestions
+      analysis += this.generateCoverageRecommendations(threshold);
+
+    } catch (error) {
+      analysis += `❌ Error analyzing coverage: ${error}\n\n`;
+    }
+
+    return analysis;
+  }
+
+  private parseCoverageOutput(output: string, threshold: number): string {
+    let report = `## 📈 Coverage Report\n\n`;
+
+    // Look for coverage table in output
+    const coverageMatch = output.match(/File\s+%\s+Stmts\s+%\s+Branch\s+%\s+Funcs\s+%\s+Lines[\s\S]*?(-+)/);
+    
+    if (coverageMatch) {
+      report += `### Detailed Coverage:\n\`\`\`\n${coverageMatch[0]}\n\`\`\`\n\n`;
+    }
+
+    // Extract summary percentages
+    const summaryMatch = output.match(/All files\s+\|\s+([\d.]+)\s+\|\s+([\d.]+)\s+\|\s+([\d.]+)\s+\|\s+([\d.]+)/);
+    
+    if (summaryMatch) {
+      const [, statements, branches, functions, lines] = summaryMatch;
+      const metrics = {
+        statements: parseFloat(statements),
+        branches: parseFloat(branches),
+        functions: parseFloat(functions),
+        lines: parseFloat(lines)
+      };
+
+      report += `### Coverage Summary:\n`;
+      Object.entries(metrics).forEach(([metric, value]) => {
+        const status = value >= threshold ? '✅' : '❌';
+        const emoji = value >= threshold ? '🎯' : '⚠️';
+        report += `- ${status} **${metric.charAt(0).toUpperCase() + metric.slice(1)}**: ${value}% ${emoji}\n`;
+      });
+
+      const overallPassing = Object.values(metrics).every(value => value >= threshold);
+      report += `\n**Overall Status**: ${overallPassing ? '✅ PASSING' : '❌ BELOW THRESHOLD'} (${threshold}%)\n\n`;
+
+      // Identify areas needing improvement
+      const needsImprovement = Object.entries(metrics)
+        .filter(([, value]) => value < threshold)
+        .map(([metric]) => metric);
+
+      if (needsImprovement.length > 0) {
+        report += `### 🎯 Areas Needing Improvement:\n`;
+        needsImprovement.forEach(metric => {
+          report += `- **${metric.charAt(0).toUpperCase() + metric.slice(1)}** coverage is below ${threshold}%\n`;
+        });
+        report += `\n`;
+      }
+    } else {
+      report += `⚠️ Could not parse coverage summary. Check Jest output manually.\n\n`;
+    }
+
+    return report;
+  }
+
+  private generateCoverageRecommendations(threshold: number): string {
+    return `## 🎯 Coverage Improvement Strategies
+
+### 1. Identify Uncovered Code
+\`\`\`bash
+npm test -- --coverage --coverageReporters=text-lcov | npx lcov-result-merger "coverage/lcov.info" | npx lcov-summary
+\`\`\`
+
+### 2. Focus on High-Impact Areas
+- **Business Logic**: Core functionality and calculations
+- **User Interactions**: Button clicks, form submissions
+- **Error Handling**: Try-catch blocks and error boundaries
+- **Edge Cases**: Boundary conditions and error states
+
+### 3. Testing Strategies by Coverage Type
+
+#### Statements Coverage (${threshold}%+ target)
+- Test all code paths and conditional branches
+- Include positive and negative test cases
+- Test error handling and edge cases
+
+#### Branch Coverage (${threshold}%+ target)
+- Test all if/else conditions
+- Test switch statement cases
+- Test ternary operators
+- Test logical operators (&&, ||)
+
+#### Function Coverage (${threshold}%+ target)
+- Call every function at least once
+- Test function parameters and return values
+- Test async functions with promises/callbacks
+
+#### Line Coverage (${threshold}%+ target)
+- Execute every line of code
+- Focus on untested utility functions
+- Test configuration and setup code
+
+### 4. Quick Wins for Better Coverage
+
+#### Add Missing Test Cases
+\`\`\`javascript
+// Test error scenarios
+test('handles network error gracefully', async () => {
+  mockAPI.get.mockRejectedValue(new Error('Network error'));
+  const { getByText } = render(<MyComponent />);
+  await waitFor(() => {
+    expect(getByText('Error occurred')).toBeTruthy();
+  });
+});
+
+// Test edge cases
+test('handles empty data', () => {
+  const { getByText } = render(<MyComponent data={[]} />);
+  expect(getByText('No data available')).toBeTruthy();
+});
+\`\`\`
+
+#### Mock External Dependencies
+\`\`\`javascript
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({
+    navigate: jest.fn(),
+    goBack: jest.fn(),
+  }),
+}));
+\`\`\`
+
+### 5. Coverage Quality vs Quantity
+- **Quality**: Test meaningful user scenarios
+- **Avoid**: Testing implementation details
+- **Focus**: Critical business logic and user paths
+- **Balance**: Don't chase 100% coverage at expense of test quality
+
+### 6. Automate Coverage Monitoring
+\`\`\`json
+// package.json
+{
+  "jest": {
+    "coverageThreshold": {
+      "global": {
+        "branches": ${threshold},
+        "functions": ${threshold},
+        "lines": ${threshold},
+        "statements": ${threshold}
+      }
+    }
+  }
+}
+\`\`\`
+
+### 7. Coverage Reports
+- **HTML Report**: \`npm test -- --coverage --coverageReporters=html\`
+- **Text Report**: \`npm test -- --coverage --coverageReporters=text\`
+- **LCOV Report**: For CI/CD integration
+
+**Remember**: Good tests are more valuable than high coverage numbers. Focus on testing critical functionality and user scenarios.
+`;
   }
 }
