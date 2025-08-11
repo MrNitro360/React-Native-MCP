@@ -137,13 +137,27 @@ jobs:
         echo "new-version=$newVersion" >> $GITHUB_OUTPUT
         
         echo "📤 Pushing version commit back to repository..."
-        git push origin master || {
-          echo "❌ Push failed, checking repository state..."
-          git status
-          git log --oneline -3
-          exit 1
-        }
-        echo "✅ Version commit pushed successfully"
+        
+        # Set up authentication for push
+        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+        
+        # Push with retry logic
+        for i in {1..3}; do
+          if git push origin master; then
+            echo "✅ Version commit pushed successfully on attempt $i"
+            break
+          else
+            echo "❌ Push attempt $i failed, retrying in 5 seconds..."
+            sleep 5
+            if [ $i -eq 3 ]; then
+              echo "❌ All push attempts failed, checking repository state..."
+              git status
+              git log --oneline -3
+              git remote -v
+              exit 1
+            fi
+          fi
+        done
       id: auto-version
     
     - name: Get final version for publishing
