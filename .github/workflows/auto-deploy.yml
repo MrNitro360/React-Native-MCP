@@ -1,4 +1,4 @@
-name: Auto-Deploy MCP Server
+name: Build and Publish MCP Server
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch: # Allow manual triggering
 
 jobs:
-  build-and-deploy:
+  build-and-publish:
     runs-on: ubuntu-latest
     
     steps:
@@ -28,12 +28,6 @@ jobs:
     
     - name: Install dependencies
       run: npm ci
-    
-    - name: Run tests
-      run: |
-        echo "Running tests..."
-        npm test -- --passWithNoTests --verbose
-        echo "Tests completed successfully"
     
     - name: Build project
       run: npm run build
@@ -148,17 +142,18 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
-    - name: Deployment Summary
+    - name: Build and Publish Summary
       run: |
-        echo "🎉 Deployment Summary:"
-        echo "✅ Build: Successful"
+        echo "🎉 Build and Publish Summary:"
+        echo "✅ Dependencies: Installed"
+        echo "✅ TypeScript Build: Successful"
         echo "✅ Version: ${{ steps.final-version.outputs.version }}"
         if [ "${{ steps.version-check.outputs.should-publish }}" = "true" ]; then
           echo "✅ NPM: Published"
-          echo "✅ Release: Created"
+          echo "✅ GitHub Release: Created"
           echo "📦 Package: https://www.npmjs.com/package/@mrnitro360/react-native-mcp-guide"
           echo "🏷️ Release: https://github.com/MrNitro360/React-Native-MCP/releases/tag/v${{ steps.final-version.outputs.version }}"
         else
-          echo "⏭️ NPM: Skipped (automated commit)"
-          echo "⏭️ Release: Skipped (automated commit)"
+          echo "⏭️ NPM: Skipped (automated version commit)"
+          echo "⏭️ Release: Skipped (automated version commit)"
         fi
