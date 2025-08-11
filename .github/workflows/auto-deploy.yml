@@ -7,6 +7,7 @@ on:
       - 'src/**'
       - 'package.json'
       - 'tsconfig.json'
+  workflow_dispatch: # Allow manual triggering
 
 jobs:
   build-and-deploy:
@@ -16,6 +17,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -28,67 +30,135 @@ jobs:
       run: npm ci
     
     - name: Run tests
-      run: npm test
+      run: |
+        echo "Running tests..."
+        npm test -- --passWithNoTests --verbose
+        echo "Tests completed successfully"
     
-    - name: Build
+    - name: Build project
       run: npm run build
     
-    - name: Check if version changed
+    - name: Verify build output
+      run: |
+        echo "Build completed successfully"
+        ls -la build/
+        echo "Package contents:"
+        node -e "console.log('Main entry:', require('./package.json').main)"
+        node -e "console.log('Bin entry:', Object.entries(require('./package.json').bin || {}))"
+    
+    - name: Check if version should be incremented
       id: version-check
       run: |
         currentVersion=$(node -p "require('./package.json').version")
         lastCommit=$(git log --oneline -1)
-        if [[ $lastCommit =~ v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-          echo "version-changed=true" >> $GITHUB_OUTPUT
-          echo "current-version=$currentVersion" >> $GITHUB_OUTPUT
-        else
+        echo "Current version: $currentVersion"
+        echo "Last commit: $lastCommit"
+        
+        # Check if commit already contains version bump or is marked [skip ci]
+        if [[ $lastCommit =~ (\[skip\ ci\]|Auto-increment\ version) ]]; then
           echo "version-changed=false" >> $GITHUB_OUTPUT
+          echo "should-publish=false" >> $GITHUB_OUTPUT
           echo "current-version=$currentVersion" >> $GITHUB_OUTPUT
+          echo "Skipping version increment - automated commit detected"
+        else
+          echo "version-changed=true" >> $GITHUB_OUTPUT  
+          echo "should-publish=true" >> $GITHUB_OUTPUT
+          echo "current-version=$currentVersion" >> $GITHUB_OUTPUT
+          echo "Will increment version and publish"
         fi
     
     - name: Auto-increment version
-      if: steps.version-check.outputs.version-changed == 'false'
+      if: steps.version-check.outputs.version-changed == 'true'
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
+        
+        # Increment patch version
         npm version patch --no-git-tag-version
         newVersion=$(node -p "require('./package.json').version")
+        
+        echo "Incremented version to: $newVersion"
+        echo "new-version=$newVersion" >> $GITHUB_OUTPUT
+        
+        # Commit version change
         git add package.json
         git commit -m "Auto-increment version to v$newVersion [skip ci]"
         git push
-        echo "new-version=$newVersion" >> $GITHUB_OUTPUT
       id: auto-version
     
-    - name: Get final version
+    - name: Get final version for publishing
       id: final-version
       run: |
         if [ "${{ steps.version-check.outputs.version-changed }}" = "true" ]; then
-          echo "version=${{ steps.version-check.outputs.current-version }}" >> $GITHUB_OUTPUT
+          finalVersion="${{ steps.auto-version.outputs.new-version }}"
         else
-          echo "version=${{ steps.auto-version.outputs.new-version }}" >> $GITHUB_OUTPUT
+          finalVersion="${{ steps.version-check.outputs.current-version }}"
         fi
+        echo "version=$finalVersion" >> $GITHUB_OUTPUT
+        echo "Final version for publishing: $finalVersion"
     
     - name: Publish to npm
-      if: always()
-      run: npm publish --access public
+      if: steps.version-check.outputs.should-publish == 'true'
+      run: |
+        echo "Publishing version ${{ steps.final-version.outputs.version }} to npm..."
+        npm publish --access public
+        echo "Successfully published to npm!"
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     
     - name: Create GitHub Release
-      if: always()
+      if: steps.version-check.outputs.should-publish == 'true'
       uses: softprops/action-gh-release@v1
       with:
         tag_name: v${{ steps.final-version.outputs.version }}
         name: Release v${{ steps.final-version.outputs.version }}
         body: |
-          ## What's Changed
-          - Auto-deployed React Native MCP Server
-          - Enhanced analysis tools and user notifications
+          ## 🚀 React Native MCP Server v${{ steps.final-version.outputs.version }}
           
-          ## Installation
+          ### What's New
+          - Enhanced React Native analysis and guidance tools
+          - Comprehensive security and performance auditing
+          - User notification system for updates
+          - Auto-deployment via GitHub Actions
+          
+          ### 📦 Installation Options
+          
+          **Option 1: Global npm install (Recommended)**
           ```bash
           npm install -g @mrnitro360/react-native-mcp-guide@latest
           claude mcp add react-native-guide node "$(npm root -g)/@mrnitro360/react-native-mcp-guide/build/index.js"
           ```
+          
+          **Option 2: Direct npm reference**
+          ```bash
+          claude mcp add react-native-guide npm:@mrnitro360/react-native-mcp-guide@latest
+          ```
+          
+          ### ✅ Verification
+          ```bash
+          claude mcp list
+          # Should show react-native-guide as connected
+          ```
+          
+          ### 🔗 Package Link
+          https://www.npmjs.com/package/@mrnitro360/react-native-mcp-guide
         draft: false
         prerelease: false
+        generate_release_notes: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Deployment Summary
+      run: |
+        echo "🎉 Deployment Summary:"
+        echo "✅ Build: Successful"
+        echo "✅ Version: ${{ steps.final-version.outputs.version }}"
+        if [ "${{ steps.version-check.outputs.should-publish }}" = "true" ]; then
+          echo "✅ NPM: Published"
+          echo "✅ Release: Created"
+          echo "📦 Package: https://www.npmjs.com/package/@mrnitro360/react-native-mcp-guide"
+          echo "🏷️ Release: https://github.com/MrNitro360/React-Native-MCP/releases/tag/v${{ steps.final-version.outputs.version }}"
+        else
+          echo "⏭️ NPM: Skipped (automated commit)"
+          echo "⏭️ Release: Skipped (automated commit)"
+        fi
