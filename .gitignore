@@ -51,3 +51,19 @@ coverage/
 # Temporary folders
 tmp/
 temp/
+
+# Temporary files
+*.tmp
+*_temp.*
+temp_*
+*-temp.*
+
+# Editor backup files
+*~
+*.swp
+*.swo
+
+# Project specific temporary files
+reddit-post.*
+*_NEW.*
+PROJECT_SUMMARY.md
