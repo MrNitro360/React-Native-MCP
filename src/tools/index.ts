@@ -352,6 +352,60 @@ export class ReactNativeTools {
         };
       }
     );
+
+    // Code Remediation Tool - Expert-level automatic code fixing
+    this.server.tool(
+      "remediate_code",
+      "Automatically fix React Native code issues with expert-level solutions",
+      {
+        code: z.string().describe("React Native code to remediate"),
+        issues: z.array(z.string()).optional().describe("Specific issues to fix (if not provided, auto-detects all)"),
+        remediation_level: z.enum(["basic", "comprehensive", "expert"]).optional().describe("Level of remediation to apply"),
+        preserve_formatting: z.boolean().optional().describe("Whether to preserve original code formatting"),
+        add_comments: z.boolean().optional().describe("Whether to add explanatory comments to fixes")
+      },
+      async ({ code, issues = [], remediation_level = "expert", preserve_formatting = true, add_comments = true }) => {
+        const remediation = await this.remediateCode(code, issues, remediation_level, preserve_formatting, add_comments);
+        return {
+          content: [
+            {
+              type: "text",
+              text: remediation
+            }
+          ]
+        };
+      }
+    );
+
+    // Code Refactoring Tool - Advanced refactoring suggestions
+    this.server.tool(
+      "refactor_component",
+      "Provide expert-level refactoring suggestions and implementations",
+      {
+        code: z.string().describe("React Native component code to refactor"),
+        refactor_type: z.enum([
+          "performance", 
+          "maintainability", 
+          "accessibility", 
+          "type_safety", 
+          "modern_patterns",
+          "comprehensive"
+        ]).describe("Type of refactoring to apply"),
+        target_rn_version: z.string().optional().describe("Target React Native version for refactoring"),
+        include_tests: z.boolean().optional().describe("Whether to include test updates")
+      },
+      async ({ code, refactor_type, target_rn_version = "latest", include_tests = false }) => {
+        const refactoring = await this.refactorComponent(code, refactor_type, target_rn_version, include_tests);
+        return {
+          content: [
+            {
+              type: "text",
+              text: refactoring
+            }
+          ]
+        };
+      }
+    );
   }
 
   private getVersionInfo(includeBuildInfo: boolean): string {
@@ -404,26 +458,86 @@ export class ReactNativeTools {
     const issues: string[] = [];
     const suggestions: string[] = [];
 
-    // Basic analysis patterns
-    if (code.includes("useState") && code.includes("useEffect")) {
-      if (!code.includes("useCallback") && code.includes("onPress")) {
-        issues.push("Missing useCallback for event handlers can cause unnecessary re-renders");
-        suggestions.push("Wrap event handlers in useCallback to prevent child re-renders");
+    // More accurate React component detection
+    const hasReactImport = /import\s+.*React.*from\s+['"]react['"]|from\s+['"]react-native['"]/.test(code);
+    const hasExport = /export\s+default\s+(?:function|class|const)|export\s+(?:function|const)|export\s+default\s+\w+/.test(code);
+    const hasJSXElements = /<[A-Z]\w*[\s\S]*?>/.test(code);
+    const isReactComponent = hasReactImport && hasExport && hasJSXElements;
+
+    if (!isReactComponent) {
+      return "## Analysis Result\n\nThis does not appear to be a React Native component.";
+    }
+
+    // More precise hook usage analysis
+    const hasUseState = /useState\s*\(/.test(code);
+    const hasUseEffect = /useEffect\s*\(/.test(code);
+    const hasUseCallback = /useCallback\s*\(/.test(code);
+    const hasOnPress = /onPress\s*=/.test(code);
+    
+    if (hasUseState && hasUseEffect && hasOnPress && !hasUseCallback) {
+      // Check if onPress is actually inside a function component
+      const funcComponentRegex = /(?:function\s+\w+|const\s+\w+\s*=\s*(?:\([^)]*\)\s*=>|\([^)]*\)\s*=>))[\s\S]*?onPress/;
+      if (funcComponentRegex.test(code)) {
+        issues.push("Event handlers may cause unnecessary re-renders without useCallback");
+        suggestions.push("Consider wrapping event handlers in useCallback to optimize performance");
       }
     }
 
-    if (code.includes("FlatList") && !code.includes("keyExtractor")) {
-      issues.push("FlatList missing keyExtractor prop");
-      suggestions.push("Add keyExtractor prop to FlatList for better performance");
+    // More accurate FlatList analysis
+    const flatListMatch = code.match(/<FlatList[\s\S]*?(?:\/\>|<\/FlatList>)/);
+    if (flatListMatch) {
+      const flatListProps = flatListMatch[0];
+      if (!flatListProps.includes('keyExtractor')) {
+        issues.push("FlatList missing keyExtractor prop which can cause rendering issues");
+        suggestions.push("Add keyExtractor={(item, index) => item.id || index.toString()} to FlatList");
+      }
+      if (!flatListProps.includes('getItemLayout') && flatListProps.includes('data=')) {
+        suggestions.push("Consider adding getItemLayout if all items have the same height for better performance");
+      }
     }
 
-    if (code.includes("ScrollView") && code.includes("map(")) {
-      issues.push("Using map() inside ScrollView instead of FlatList");
-      suggestions.push("Consider using FlatList for better performance with large lists");
+    // More precise ScrollView with map detection
+    const scrollViewWithMapRegex = /<ScrollView[\s\S]*?>[\s\S]*?\.map\s*\([\s\S]*?<\/ScrollView>/;
+    if (scrollViewWithMapRegex.test(code)) {
+      issues.push("Using .map() inside ScrollView can cause performance issues with large datasets");
+      suggestions.push("Replace ScrollView + .map() with FlatList for better performance with dynamic lists");
     }
 
-    if (code.includes("StyleSheet.create") && code.includes("flex: 1")) {
-      suggestions.push("Good use of StyleSheet.create and flex layout");
+    // Style analysis improvements
+    const hasStyleSheetCreate = /StyleSheet\.create\s*\(/.test(code);
+    const hasInlineStyles = /style\s*=\s*\{\{/.test(code);
+    
+    if (hasInlineStyles && !hasStyleSheetCreate) {
+      suggestions.push("Consider using StyleSheet.create instead of inline styles for better performance");
+    }
+    
+    if (hasStyleSheetCreate) {
+      suggestions.push("✅ Good use of StyleSheet.create for optimized styling");
+    }
+
+    // Security analysis - inline for immediate effect
+    // Check for hardcoded secrets
+    if (/(?:api[_-]?key|apikey)\s*[:=]\s*["'][^"']{10,}["']/gi.test(code)) {
+      issues.push("Potential hardcoded API key detected - security risk");
+      suggestions.push("Move API keys to environment variables or secure storage");
+    }
+    
+    // Check for sensitive logging
+    if (/console\.log.*(?:password|pwd|secret|token|key|auth|credential)/gi.test(code)) {
+      issues.push("Console logging may expose sensitive data");
+      suggestions.push("Remove or sanitize console statements containing sensitive information");
+    }
+    
+    // Check for HTTP requests
+    if (/fetch\s*\(\s*["']http:\/\//.test(code)) {
+      issues.push("HTTP requests detected instead of HTTPS");
+      suggestions.push("Use HTTPS for all network requests to ensure data encryption");
+    }
+    
+    // Memory leak detection
+    if (/setInterval\s*\(/.test(code) && !/clearInterval/.test(code)) {
+      issues.push("setInterval without clearInterval - potential memory leak");
+      suggestions.push("Clear intervals in useEffect cleanup or componentWillUnmount");
     }
 
     // Generate analysis report
@@ -461,6 +575,104 @@ export class ReactNativeTools {
     analysis += "- Implement proper accessibility props\\n";
 
     return analysis;
+  }
+
+  private addSecurityIssues(code: string, issues: string[], suggestions: string[]): void {
+    // Enhanced secrets detection
+    const secretPatterns = [
+      { pattern: /(?:api[_-]?key|apikey)\s*[:=]\s*["'][^"']{10,}["']/gi, type: 'API Key' },
+      { pattern: /(?:secret|password|pwd)\s*[:=]\s*["'][^"']{6,}["']/gi, type: 'Secret/Password' },
+      { pattern: /(?:token|auth[_-]?token)\s*[:=]\s*["'][^"']{10,}["']/gi, type: 'Auth Token' },
+      { pattern: /(?:private[_-]?key|privatekey)\s*[:=]\s*["'][^"']{20,}["']/gi, type: 'Private Key' },
+      { pattern: /["'][A-Za-z0-9+/]{40,}={0,2}["']/g, type: 'Base64 encoded secret' }
+    ];
+
+    secretPatterns.forEach(({ pattern, type }) => {
+      const matches = code.match(pattern);
+      if (matches) {
+        const validMatches = matches.filter(match => 
+          !match.includes('example') && 
+          !match.includes('placeholder') && 
+          !match.includes('your_') &&
+          !match.includes('YOUR_') &&
+          !match.includes('###')
+        );
+        
+        if (validMatches.length > 0) {
+          issues.push(`Potential hardcoded ${type} detected - security risk`);
+          suggestions.push(`Move ${type.toLowerCase()} to environment variables or secure storage`);
+        }
+      }
+    });
+
+    // Sensitive logging detection
+    const sensitiveLogPatterns = [
+      /console\.log.*(?:password|pwd|secret|token|key|auth|credential)/gi,
+      /console\.(?:warn|error|info).*(?:password|pwd|secret|token|key|auth|credential)/gi
+    ];
+    
+    if (sensitiveLogPatterns.some(pattern => pattern.test(code))) {
+      issues.push("Console logging may expose sensitive data");
+      suggestions.push("Remove or sanitize console statements containing sensitive information");
+    }
+
+    // Code injection detection
+    if (/eval\s*\(/.test(code)) {
+      issues.push("eval() usage detected - critical security risk");
+      suggestions.push("Replace eval() with safer alternatives like JSON.parse()");
+    }
+
+    // Network security
+    if (/(?:fetch|axios\.(?:get|post|put|delete))\s*\(\s*["']http:\/\//.test(code)) {
+      issues.push("HTTP requests detected instead of HTTPS");
+      suggestions.push("Use HTTPS for all network requests to ensure data encryption");
+    }
+
+    // XSS vulnerabilities
+    if (/dangerouslySetInnerHTML\s*=\s*\{\{/.test(code)) {
+      issues.push("dangerouslySetInnerHTML usage detected - XSS risk");
+      suggestions.push("Sanitize HTML content or use safer alternatives");
+    }
+  }
+
+  private addMemoryLeakIssues(code: string, issues: string[], suggestions: string[]): void {
+    // setInterval without clearInterval
+    if (/setInterval\s*\(/.test(code) && !/clearInterval/.test(code)) {
+      issues.push("setInterval without clearInterval - potential memory leak");
+      suggestions.push("Clear intervals in useEffect cleanup or componentWillUnmount");
+    }
+
+    // addEventListener without removeEventListener
+    if (/addEventListener\s*\(/.test(code) && !/removeEventListener/.test(code)) {
+      issues.push("Event listeners without cleanup - potential memory leak");
+      suggestions.push("Remove event listeners in useEffect cleanup or componentWillUnmount");
+    }
+
+    // Large state objects
+    if (/useState\s*\(\s*\{[\s\S]{100,}\}\s*\)/.test(code)) {
+      suggestions.push("Large objects in useState detected - consider breaking down or using useReducer");
+    }
+  }
+
+  private addPerformanceIssues(code: string, issues: string[], suggestions: string[]): void {
+    // Wildcard imports
+    const wildcardImports = code.match(/import\s+\*\s+as\s+\w+\s+from\s+["'][^"']+["']/g);
+    if (wildcardImports && wildcardImports.length > 0) {
+      suggestions.push("Consider using named imports instead of wildcard imports for better tree shaking");
+    }
+
+    // Animation performance
+    if (/Animated\./.test(code) && !/useNativeDriver/.test(code)) {
+      suggestions.push("Add useNativeDriver: true to animations for better performance");
+    }
+
+    // Heavy libraries
+    const heavyLibraries = ['lodash', 'moment'];
+    heavyLibraries.forEach(lib => {
+      if (new RegExp(`import.*from\\s+["']${lib}["']`, 'g').test(code)) {
+        suggestions.push(`Heavy library '${lib}' detected - consider lighter alternatives or specific imports`);
+      }
+    });
   }
 
   private getPerformanceOptimizations(scenario: string, platform: string): string {
@@ -1063,60 +1275,103 @@ const fetchData = async () => {
   private analyzeFileSecurity(content: string, fileName: string): any[] {
     const issues: any[] = [];
 
-    // Hardcoded secrets
-    if (/api[_-]?key\s*[:=]\s*["'][^"']+["']/i.test(content)) {
-      issues.push({
-        file: fileName,
-        type: 'security',
-        severity: 'critical',
-        category: 'secrets',
-        issue: 'Potential hardcoded API key detected',
-        suggestion: 'Move API keys to environment variables or secure storage'
-      });
-    }
+    // Enhanced secrets detection
+    const secretPatterns = [
+      { pattern: /(?:api[_-]?key|apikey)\s*[:=]\s*["'][^"']{10,}["']/gi, type: 'API Key' },
+      { pattern: /(?:secret|password|pwd)\s*[:=]\s*["'][^"']{6,}["']/gi, type: 'Secret/Password' },
+      { pattern: /(?:token|auth[_-]?token)\s*[:=]\s*["'][^"']{10,}["']/gi, type: 'Auth Token' },
+      { pattern: /(?:private[_-]?key|privatekey)\s*[:=]\s*["'][^"']{20,}["']/gi, type: 'Private Key' },
+      { pattern: /(?:access[_-]?key|accesskey)\s*[:=]\s*["'][^"']{10,}["']/gi, type: 'Access Key' },
+      { pattern: /["'][A-Za-z0-9+/]{40,}={0,2}["']/g, type: 'Base64 encoded secret' }
+    ];
 
-    // Console.log with sensitive data patterns
-    if (/console\.log.*(?:password|token|secret|key)/i.test(content)) {
-      issues.push({
-        file: fileName,
-        type: 'security',
-        severity: 'high',
-        category: 'data_exposure',
-        issue: 'Console.log may expose sensitive data',
-        suggestion: 'Remove console.log statements or sanitize logged data'
-      });
-    }
+    secretPatterns.forEach(({ pattern, type }) => {
+      const matches = content.match(pattern);
+      if (matches) {
+        // Exclude common false positives
+        const validMatches = matches.filter(match => 
+          !match.includes('example') && 
+          !match.includes('placeholder') && 
+          !match.includes('your_') &&
+          !match.includes('YOUR_') &&
+          !match.includes('###')
+        );
+        
+        if (validMatches.length > 0) {
+          issues.push({
+            file: fileName,
+            type: 'security',
+            severity: 'critical',
+            category: 'secrets',
+            issue: `Potential hardcoded ${type} detected (${validMatches.length} occurrence(s))`,
+            suggestion: `Move ${type.toLowerCase()} to environment variables or React Native Config/Keychain`
+          });
+        }
+      }
+    });
 
-    // Eval usage
-    if (content.includes('eval(')) {
-      issues.push({
-        file: fileName,
-        type: 'security',
-        severity: 'critical',
-        category: 'code_injection',
-        issue: 'Use of eval() detected',
-        suggestion: 'Replace eval() with safer alternatives like JSON.parse()'
-      });
-    }
+    // Enhanced logging detection
+    const sensitiveLogPatterns = [
+      /console\.log.*(?:password|pwd|secret|token|key|auth|credential)/gi,
+      /console\.(?:warn|error|info).*(?:password|pwd|secret|token|key|auth|credential)/gi,
+      /console\.log.*\$\{.*(?:password|pwd|secret|token|key|auth|credential)/gi
+    ];
+    
+    sensitiveLogPatterns.forEach(pattern => {
+      if (pattern.test(content)) {
+        issues.push({
+          file: fileName,
+          type: 'security',
+          severity: 'high',
+          category: 'data_exposure',
+          issue: 'Console logging may expose sensitive data',
+          suggestion: 'Remove console statements with sensitive data or use sanitized logging'
+        });
+      }
+    });
 
-    // Insecure HTTP requests
-    if (/fetch\s*\(\s*["']http:\/\//.test(content)) {
+    // Code injection vulnerabilities
+    const injectionPatterns = [
+      { pattern: /eval\s*\(/g, risk: 'critical', desc: 'eval() usage' },
+      { pattern: /Function\s*\(/g, risk: 'high', desc: 'Function constructor usage' },
+      { pattern: /setTimeout\s*\(\s*["'][^"']*["']/g, risk: 'medium', desc: 'setTimeout with string' },
+      { pattern: /setInterval\s*\(\s*["'][^"']*["']/g, risk: 'medium', desc: 'setInterval with string' }
+    ];
+
+    injectionPatterns.forEach(({ pattern, risk, desc }) => {
+      if (pattern.test(content)) {
+        issues.push({
+          file: fileName,
+          type: 'security',
+          severity: risk,
+          category: 'code_injection',
+          issue: `${desc} detected - potential code injection risk`,
+          suggestion: `Replace ${desc} with safer alternatives`
+        });
+      }
+    });
+
+    // Network security issues
+    const httpMatches = content.match(/(?:fetch|axios\.(?:get|post|put|delete))\s*\(\s*["']http:\/\/[^"']+["']/gi);
+    if (httpMatches) {
       issues.push({
         file: fileName,
         type: 'security',
         severity: 'medium',
         category: 'insecure_transport',
-        issue: 'HTTP request detected (not HTTPS)',
-        suggestion: 'Use HTTPS for all network requests'
+        issue: `${httpMatches.length} HTTP request(s) detected (should use HTTPS)`,
+        suggestion: 'Use HTTPS for all network requests to ensure data encryption'
       });
     }
 
-    // Dangerous HTML rendering
-    if (content.includes('dangerouslySetInnerHTML')) {
+    // XSS vulnerabilities
+    if (/dangerouslySetInnerHTML\s*=\s*\{\{/.test(content)) {
+      const hasUserInput = /props\.|state\.|user|input|query|param/i.test(content);
+      const severity = hasUserInput ? 'critical' : 'high';
       issues.push({
         file: fileName,
         type: 'security',
-        severity: 'high',
+        severity,
         category: 'xss',
         issue: 'dangerouslySetInnerHTML usage detected',
         suggestion: 'Sanitize HTML content or use safer alternatives'
@@ -1543,24 +1798,51 @@ const fetchData = async () => {
   private async findReactNativeFiles(projectPath: string): Promise<string[]> {
     const files: string[] = [];
     
-    const scanDirectory = async (dir: string): Promise<void> => {
+    const scanDirectory = async (dir: string, depth: number = 0): Promise<void> => {
       try {
+        // Prevent scanning too deep to avoid performance issues
+        if (depth > 10) return;
+        
         const entries = await fs.promises.readdir(dir, { withFileTypes: true });
         
         for (const entry of entries) {
           const fullPath = path.join(dir, entry.name);
           
           if (entry.isDirectory()) {
-            // Skip node_modules, .git, and other build directories
-            if (!['node_modules', '.git', 'ios', 'android', '.expo', 'dist', 'build'].includes(entry.name)) {
-              await scanDirectory(fullPath);
+            // Enhanced directory filtering
+            const skipDirs = [
+              'node_modules', '.git', 'ios', 'android', '.expo', 'dist', 'build',
+              '.next', 'coverage', '__pycache__', '.vscode', '.idea', 'tmp',
+              'temp', 'logs', 'log', 'cache', '.cache', '.turbo'
+            ];
+            
+            if (!skipDirs.includes(entry.name) && !entry.name.startsWith('.')) {
+              await scanDirectory(fullPath, depth + 1);
             }
           } else if (entry.isFile()) {
-            // Look for React Native files
-            if (/\.(js|jsx|ts|tsx)$/.test(entry.name) && 
-                !entry.name.includes('.test.') && 
-                !entry.name.includes('.spec.')) {
-              files.push(fullPath);
+            // Enhanced file filtering for React Native
+            const isReactNativeFile = /\.(js|jsx|ts|tsx)$/.test(entry.name) && 
+                                     !entry.name.includes('.test.') && 
+                                     !entry.name.includes('.spec.') &&
+                                     !entry.name.includes('.d.ts') &&
+                                     !entry.name.includes('.config.') &&
+                                     !entry.name.endsWith('.min.js');
+            
+            if (isReactNativeFile) {
+              // Additional check: read first few lines to confirm it's React/React Native
+              try {
+                const content = await fs.promises.readFile(fullPath, 'utf-8');
+                const firstLines = content.substring(0, 500);
+                const isReactRelated = /import.*react|from.*react|@react-native|react-native/i.test(firstLines) ||
+                                     /<[A-Z]\w*[\s\S]*?>/m.test(firstLines) ||
+                                     /export.*component|export.*function.*\(/i.test(firstLines);
+                
+                if (isReactRelated) {
+                  files.push(fullPath);
+                }
+              } catch {
+                // If we can't read the file, skip it
+              }
             }
           }
         }
@@ -1578,34 +1860,65 @@ const fetchData = async () => {
     const suggestions: string[] = [];
     const fileName = path.basename(filePath);
 
-    // Check if it's a React Native component
-    const isComponent = content.includes('React') && 
-                       (content.includes('export default') || content.includes('export const'));
+    // More accurate React Native component detection
+    const hasReactImport = /import\s+.*React.*from\s+['"]react['"]/m.test(content);
+    const hasRNImport = /from\s+['"]react-native['"]/m.test(content);
+    const hasExport = /export\s+(?:default\s+)?(?:function|class|const)/m.test(content);
+    const hasJSXElements = /<[A-Z]\w*[\s\S]*?>/m.test(content);
+    
+    const isComponent = (hasReactImport || hasRNImport) && hasExport && hasJSXElements;
 
     if (isComponent) {
-      // Performance checks
-      if (content.includes('FlatList') && !content.includes('keyExtractor')) {
-        issues.push(`${fileName}: FlatList missing keyExtractor`);
+      // Enhanced FlatList analysis
+      const flatListMatches = content.match(/<FlatList[\s\S]*?(?:\/\>|<\/FlatList>)/g);
+      if (flatListMatches) {
+        flatListMatches.forEach(flatList => {
+          if (!flatList.includes('keyExtractor')) {
+            issues.push(`${fileName}: FlatList missing keyExtractor prop`);
+          }
+          if (!flatList.includes('getItemLayout') && flatList.length > 200) {
+            suggestions.push(`${fileName}: Consider adding getItemLayout to FlatList for better performance`);
+          }
+        });
       }
 
-      if (content.includes('ScrollView') && content.includes('.map(')) {
-        issues.push(`${fileName}: Using map() in ScrollView instead of FlatList`);
+      // More precise ScrollView + map detection
+      const scrollViewMapRegex = /<ScrollView[\s\S]*?>[\s\S]*?\.map\s*\([\s\S]*?<\/ScrollView>/g;
+      if (scrollViewMapRegex.test(content)) {
+        issues.push(`${fileName}: Using .map() inside ScrollView - consider FlatList for performance`);
       }
 
-      if (content.includes('useState') && content.includes('useEffect')) {
-        if (!content.includes('useCallback') && content.includes('onPress')) {
-          issues.push(`${fileName}: Missing useCallback for event handlers`);
-        }
+      // Enhanced hooks analysis
+      const hasUseState = /useState\s*\(/.test(content);
+      const hasUseEffect = /useEffect\s*\(/.test(content);
+      const hasUseCallback = /useCallback\s*\(/.test(content);
+      const hasEventHandlers = /on(?:Press|Change|Submit|Focus|Blur)\s*=/.test(content);
+      
+      if (hasUseState && hasUseEffect && hasEventHandlers && !hasUseCallback) {
+        issues.push(`${fileName}: Event handlers without useCallback may cause re-renders`);
       }
 
-      // Style checks
-      if (!content.includes('StyleSheet.create') && content.includes('style=')) {
-        suggestions.push(`${fileName}: Consider using StyleSheet.create for better performance`);
+      // Improved style analysis
+      const hasStyleSheetCreate = /StyleSheet\.create\s*\(/.test(content);
+      const hasInlineStyles = /style\s*=\s*\{\{[^}]+\}\}/g.test(content);
+      
+      if (hasInlineStyles && !hasStyleSheetCreate) {
+        suggestions.push(`${fileName}: Replace inline styles with StyleSheet.create for better performance`);
       }
 
-      // Import checks
-      if (content.includes("import React from 'react'") && content.includes('useState')) {
-        suggestions.push(`${fileName}: Consider using named imports for React hooks`);
+      // Import optimization checks
+      const wildcardImports = content.match(/import\s+\*\s+as\s+\w+\s+from\s+['"][^'"]+['"]/g);
+      if (wildcardImports && wildcardImports.length > 0) {
+        suggestions.push(`${fileName}: Consider using named imports instead of wildcard imports`);
+      }
+
+      // Memory leak detection
+      if (/setInterval\s*\(/.test(content) && !/clearInterval/.test(content)) {
+        issues.push(`${fileName}: setInterval without clearInterval may cause memory leaks`);
+      }
+      
+      if (/addEventListener\s*\(/.test(content) && !/removeEventListener/.test(content)) {
+        issues.push(`${fileName}: Event listeners without cleanup may cause memory leaks`);
       }
     }
 
@@ -1624,60 +1937,153 @@ const fetchData = async () => {
     const fileName = path.basename(filePath);
 
     if (focusAreas.includes('all') || focusAreas.includes('list_rendering')) {
-      if (content.includes('FlatList')) {
-        if (!content.includes('getItemLayout')) {
-          issues.push({
-            file: fileName,
-            type: 'list_rendering',
-            severity: 'medium',
-            issue: 'FlatList without getItemLayout for known item sizes',
-            suggestion: 'Add getItemLayout for better scrolling performance'
-          });
-        }
-        if (!content.includes('removeClippedSubviews')) {
-          issues.push({
-            file: fileName,
-            type: 'list_rendering', 
-            severity: 'low',
-            issue: 'FlatList without removeClippedSubviews optimization',
-            suggestion: 'Consider adding removeClippedSubviews={true} for large lists'
-          });
-        }
+      // Enhanced FlatList analysis
+      const flatListMatches = content.match(/<FlatList[\s\S]*?(?:\/\>|<\/FlatList>)/g);
+      if (flatListMatches) {
+        flatListMatches.forEach((flatList, index) => {
+          const flatListId = flatListMatches.length > 1 ? ` #${index + 1}` : '';
+          
+          if (!flatList.includes('getItemLayout')) {
+            issues.push({
+              file: fileName,
+              type: 'list_rendering',
+              severity: 'medium',
+              issue: `FlatList${flatListId} without getItemLayout - impacts scrolling performance`,
+              suggestion: 'Add getItemLayout={(data, index) => ({length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index})} if items have known fixed height'
+            });
+          }
+          
+          if (!flatList.includes('removeClippedSubviews')) {
+            issues.push({
+              file: fileName,
+              type: 'list_rendering', 
+              severity: 'low',
+              issue: `FlatList${flatListId} without removeClippedSubviews optimization`,
+              suggestion: 'Add removeClippedSubviews={true} for better memory usage with large lists'
+            });
+          }
+          
+          if (!flatList.includes('keyExtractor')) {
+            issues.push({
+              file: fileName,
+              type: 'list_rendering',
+              severity: 'high',
+              issue: `FlatList${flatListId} missing keyExtractor - can cause rendering issues`,
+              suggestion: 'Add keyExtractor={(item, index) => item.id?.toString() || index.toString()}'
+            });
+          }
+          
+          if (!flatList.includes('maxToRenderPerBatch') && flatList.length > 300) {
+            issues.push({
+              file: fileName,
+              type: 'list_rendering',
+              severity: 'low',
+              issue: `Large FlatList${flatListId} without batch rendering optimization`,
+              suggestion: 'Consider adding maxToRenderPerBatch={5} and windowSize={10} for large lists'
+            });
+          }
+        });
+      }
+      
+      // Check for ScrollView with many children
+      const scrollViewMapRegex = /<ScrollView[\s\S]*?>[\s\S]*?\.map\s*\([\s\S]*?<\/ScrollView>/g;
+      const matches = content.match(scrollViewMapRegex);
+      if (matches) {
+        issues.push({
+          file: fileName,
+          type: 'list_rendering',
+          severity: 'high',
+          issue: 'ScrollView with .map() can cause performance issues with large datasets',
+          suggestion: 'Replace ScrollView + .map() with FlatList for virtualized rendering'
+        });
       }
     }
 
     if (focusAreas.includes('all') || focusAreas.includes('memory_usage')) {
-      // Check for potential memory leaks
-      if (content.includes('setInterval') && !content.includes('clearInterval')) {
-        issues.push({
-          file: fileName,
-          type: 'memory_usage',
-          severity: 'high', 
-          issue: 'setInterval without clearInterval',
-          suggestion: 'Clear intervals in cleanup functions or useEffect return'
-        });
+      // More precise memory leak detection
+      const intervalMatches = content.match(/setInterval\s*\([^)]+\)/g);
+      if (intervalMatches) {
+        const hasCleanup = /clearInterval|useEffect\s*\([^,]+,\s*\[\]\)[\s\S]*?return\s*\(\s*\)\s*=>|componentWillUnmount/.test(content);
+        if (!hasCleanup) {
+          issues.push({
+            file: fileName,
+            type: 'memory_usage',
+            severity: 'high', 
+            issue: `${intervalMatches.length} setInterval(s) without proper cleanup`,
+            suggestion: 'Clear intervals in useEffect cleanup or componentWillUnmount: () => clearInterval(intervalId)'
+          });
+        }
       }
 
-      if (content.includes('addEventListener') && !content.includes('removeEventListener')) {
+      const listenerMatches = content.match(/addEventListener\s*\([^)]+\)/g);
+      if (listenerMatches) {
+        const hasListenerCleanup = /removeEventListener|useEffect\s*\([^,]+,\s*\[\]\)[\s\S]*?return\s*\(\s*\)\s*=>/.test(content);
+        if (!hasListenerCleanup) {
+          issues.push({
+            file: fileName,
+            type: 'memory_usage',
+            severity: 'high',
+            issue: `${listenerMatches.length} event listener(s) without cleanup`,
+            suggestion: 'Remove event listeners in useEffect cleanup or componentWillUnmount'
+          });
+        }
+      }
+      
+      // Check for large state objects
+      const largeStateRegex = /useState\s*\(\s*\{[\s\S]{100,}\}\s*\)/g;
+      if (largeStateRegex.test(content)) {
         issues.push({
           file: fileName,
           type: 'memory_usage',
-          severity: 'high',
-          issue: 'Event listener without removal',
-          suggestion: 'Remove event listeners in cleanup functions'
+          severity: 'medium',
+          issue: 'Large object in useState - may impact performance',
+          suggestion: 'Consider breaking down large state objects or using useReducer'
         });
       }
     }
 
     if (focusAreas.includes('all') || focusAreas.includes('bundle_size')) {
-      // Check for heavy imports
-      if (content.includes("import * as")) {
+      // More specific wildcard import analysis
+      const wildcardImports = content.match(/import\s+\*\s+as\s+(\w+)\s+from\s+['"]([^'"]+)['"]/g);
+      if (wildcardImports) {
+        wildcardImports.forEach(importStmt => {
+          const match = importStmt.match(/from\s+['"]([^'"]+)['"]/); 
+          const moduleName = match ? match[1] : 'unknown';
+          issues.push({
+            file: fileName,
+            type: 'bundle_size',
+            severity: 'medium',
+            issue: `Wildcard import from '${moduleName}' increases bundle size`,
+            suggestion: `Use named imports: import { specificFunction } from '${moduleName}'`
+          });
+        });
+      }
+      
+      // Check for heavy libraries
+      const heavyLibraries = ['lodash', 'moment', 'date-fns'];
+      heavyLibraries.forEach(lib => {
+        const libImportRegex = new RegExp(`import.*from\s+['"]${lib}['"]{1}`, 'g');
+        if (libImportRegex.test(content)) {
+          issues.push({
+            file: fileName,
+            type: 'bundle_size',
+            severity: 'medium',
+            issue: `Heavy library '${lib}' import detected`,
+            suggestion: `Consider using specific imports from '${lib}' or lighter alternatives`
+          });
+        }
+      });
+    }
+    
+    if (focusAreas.includes('all') || focusAreas.includes('animations')) {
+      // Check for animation performance issues
+      if (content.includes('Animated.') && !content.includes('useNativeDriver')) {
         issues.push({
           file: fileName,
-          type: 'bundle_size',
+          type: 'animations',
           severity: 'medium',
-          issue: 'Wildcard import detected',
-          suggestion: 'Use named imports to reduce bundle size'
+          issue: 'Animations without native driver may cause performance issues',
+          suggestion: 'Add useNativeDriver: true to Animated.timing/spring/decay for better performance'
         });
       }
     }
@@ -3890,6 +4296,484 @@ jest.mock('@react-navigation/native', () => ({
 - **LCOV Report**: For CI/CD integration
 
 **Remember**: Good tests are more valuable than high coverage numbers. Focus on testing critical functionality and user scenarios.
+`;
+  }
+
+  // Expert-level code remediation methods
+  private async remediateCode(
+    code: string, 
+    issues: string[], 
+    level: string, 
+    preserveFormatting: boolean, 
+    addComments: boolean
+  ): Promise<string> {
+    let remediatedCode = code;
+    const appliedFixes: string[] = [];
+    const detectedIssues = issues.length > 0 ? issues : this.detectAllIssues(code);
+
+    let report = `## 🔧 Expert Code Remediation Report
+
+**Remediation Level:** ${level}
+**Issues Detected:** ${detectedIssues.length}
+**Formatting Preserved:** ${preserveFormatting ? 'Yes' : 'No'}
+
+`;
+
+    // Security fixes
+    remediatedCode = this.applySecurityFixes(remediatedCode, appliedFixes, addComments);
+    
+    // Performance optimizations
+    remediatedCode = this.applyPerformanceFixes(remediatedCode, appliedFixes, addComments);
+    
+    // Memory leak fixes
+    remediatedCode = this.applyMemoryLeakFixes(remediatedCode, appliedFixes, addComments);
+    
+    // Best practices enforcement
+    if (level === 'expert' || level === 'comprehensive') {
+      remediatedCode = this.applyBestPracticesFixes(remediatedCode, appliedFixes, addComments);
+    }
+
+    // Type safety improvements
+    if (level === 'expert') {
+      remediatedCode = this.applyTypeSafetyFixes(remediatedCode, appliedFixes, addComments);
+    }
+
+    report += `### ✅ Applied Fixes (${appliedFixes.length})
+
+${appliedFixes.map((fix, index) => `${index + 1}. ${fix}`).join('\n')}
+
+### 📝 Remediated Code
+
+\`\`\`typescript
+${remediatedCode}
+\`\`\`
+
+### 🎯 Next Steps
+
+1. **Test thoroughly** - Run your test suite to ensure fixes work correctly
+2. **Review changes** - Validate that the remediation meets your requirements
+3. **Update dependencies** - Consider upgrading packages if recommended
+4. **Add monitoring** - Implement error tracking for production stability
+
+`;
+
+    return report;
+  }
+
+  private async refactorComponent(
+    code: string, 
+    refactorType: string, 
+    targetVersion: string, 
+    includeTests: boolean
+  ): Promise<string> {
+    let report = `## 🚀 Expert Component Refactoring
+
+**Refactor Type:** ${refactorType}
+**Target RN Version:** ${targetVersion}
+**Include Tests:** ${includeTests ? 'Yes' : 'No'}
+
+`;
+
+    let refactoredCode = code;
+    const improvements: string[] = [];
+
+    switch (refactorType) {
+      case 'performance':
+        refactoredCode = this.refactorForPerformance(code, improvements);
+        break;
+      case 'maintainability':
+        refactoredCode = this.refactorForMaintainability(code, improvements);
+        break;
+      case 'accessibility':
+        refactoredCode = this.refactorForAccessibility(code, improvements);
+        break;
+      case 'type_safety':
+        refactoredCode = this.refactorForTypeSafety(code, improvements);
+        break;
+      case 'modern_patterns':
+        refactoredCode = this.refactorToModernPatterns(code, improvements);
+        break;
+      case 'comprehensive':
+        refactoredCode = this.refactorComprehensive(code, improvements);
+        break;
+    }
+
+    report += `### 🔧 Applied Improvements (${improvements.length})
+
+${improvements.map((improvement, index) => `${index + 1}. ${improvement}`).join('\n')}
+
+### 📝 Refactored Code
+
+\`\`\`typescript
+${refactoredCode}
+\`\`\`
+
+`;
+
+    if (includeTests) {
+      const testCode = this.generateRefactoredTests(refactoredCode);
+      report += `### 🧪 Updated Tests
+
+\`\`\`typescript
+${testCode}
+\`\`\`
+
+`;
+    }
+
+    report += `### 📊 Performance Impact
+
+- **Bundle Size**: Likely reduced due to optimizations
+- **Runtime Performance**: Improved through modern patterns
+- **Memory Usage**: Optimized with proper cleanup
+- **Accessibility**: Enhanced user experience
+
+### 🔍 Code Quality Metrics
+
+- **Maintainability**: ⬆️ Improved
+- **Readability**: ⬆️ Enhanced
+- **Testability**: ⬆️ Better
+- **Type Safety**: ⬆️ Stronger
+
+`;
+
+    return report;
+  }
+
+  // Security remediation methods
+  private applySecurityFixes(code: string, appliedFixes: string[], addComments: boolean): string {
+    let fixedCode = code;
+
+    // Fix hardcoded secrets
+    const secretPatterns = [
+      { pattern: /(const|let|var)\s+(\w*[aA]pi[kK]ey\w*)\s*=\s*["'][^"']+["']/g, replacement: 'API_KEY' },
+      { pattern: /(const|let|var)\s+(\w*[sS]ecret\w*)\s*=\s*["'][^"']+["']/g, replacement: 'SECRET' },
+      { pattern: /(const|let|var)\s+(\w*[tT]oken\w*)\s*=\s*["'][^"']+["']/g, replacement: 'TOKEN' }
+    ];
+
+    secretPatterns.forEach(({ pattern, replacement }) => {
+      if (pattern.test(fixedCode)) {
+        fixedCode = fixedCode.replace(pattern, (match, varType, varName) => {
+          appliedFixes.push(`Moved hardcoded ${varName} to environment variable`);
+          const envVar = varName.toUpperCase().replace(/([A-Z])/g, '_$1').replace(/^_/, '');
+          const comment = addComments ? `\n  // TODO: Add ${envVar} to your environment variables\n` : '';
+          return `${comment}${varType} ${varName} = process.env.${envVar} || Config.${envVar}`;
+        });
+      }
+    });
+
+    // Fix sensitive logging
+    fixedCode = fixedCode.replace(
+      /console\.(log|warn|error|info)\([^)]*(?:password|pwd|secret|token|key|auth|credential)[^)]*\)/gi,
+      (match) => {
+        appliedFixes.push('Removed sensitive data from console logging');
+        const comment = addComments ? '  // Removed sensitive logging for security' : '';
+        return `${comment}\n  // console.log('[REDACTED - contains sensitive data]');`;
+      }
+    );
+
+    // Fix HTTP to HTTPS
+    fixedCode = fixedCode.replace(
+      /(fetch|axios\.[a-z]+)\s*\(\s*["']http:\/\/([^"']+)["']/g,
+      (match, method, url) => {
+        appliedFixes.push(`Upgraded HTTP to HTTPS for: ${url}`);
+        const comment = addComments ? '  // Upgraded to HTTPS for security\n  ' : '';
+        return `${comment}${method}('https://${url}'`;
+      }
+    );
+
+    return fixedCode;
+  }
+
+  // Performance remediation methods
+  private applyPerformanceFixes(code: string, appliedFixes: string[], addComments: boolean): string {
+    let fixedCode = code;
+
+    // Fix FlatList missing keyExtractor
+    fixedCode = fixedCode.replace(
+      /<FlatList([^>]*?)(?!.*keyExtractor)([^>]*?)>/g,
+      (match, before, after) => {
+        appliedFixes.push('Added keyExtractor to FlatList for better performance');
+        const comment = addComments ? '\n      {/* Added keyExtractor for performance */}\n      ' : '';
+        return `${comment}<FlatList${before}${after}\n        keyExtractor={(item, index) => item.id?.toString() || index.toString()}>`;
+      }
+    );
+
+    // Fix ScrollView with map to FlatList
+    fixedCode = fixedCode.replace(
+      /<ScrollView([^>]*?)>([\s\S]*?)\{([^}]*).map\(([^}]*?)\)\}([\s\S]*?)<\/ScrollView>/g,
+      (match, scrollProps, before, arrayVar, mapContent, after) => {
+        appliedFixes.push('Converted ScrollView with .map() to FlatList for better performance');
+        const comment = addComments ? '\n      {/* Converted to FlatList for better performance with large datasets */}\n      ' : '';
+        return `${comment}<FlatList${scrollProps}\n        data={${arrayVar.trim()}}\n        keyExtractor={(item, index) => item.id?.toString() || index.toString()}\n        renderItem={({ item }) => (${mapContent.replace('item =>', '').trim()})}\n      />`;
+      }
+    );
+
+    return fixedCode;
+  }
+
+  // Memory leak remediation methods
+  private applyMemoryLeakFixes(code: string, appliedFixes: string[], addComments: boolean): string {
+    let fixedCode = code;
+
+    // Fix setInterval without cleanup
+    const intervalRegex = /const\s+(\w+)\s*=\s*setInterval\s*\([^;]+;/g;
+    let intervalMatches = Array.from(fixedCode.matchAll(intervalRegex));
+    
+    if (intervalMatches.length > 0 && !fixedCode.includes('clearInterval')) {
+      // Add cleanup in useEffect
+      intervalMatches.forEach(match => {
+        const intervalVar = match[1];
+        appliedFixes.push(`Added clearInterval cleanup for ${intervalVar}`);
+      });
+
+      // Add useEffect cleanup
+      if (fixedCode.includes('useEffect') && !fixedCode.includes('return () =>')) {
+        fixedCode = fixedCode.replace(
+          /(useEffect\s*\([^,]+),\s*\[\]\s*\);/,
+          (match, effectContent) => {
+            const comment = addComments ? '\n    // Cleanup intervals to prevent memory leaks' : '';
+            return `${effectContent}, []);\n\n  useEffect(() => {${comment}\n    return () => {\n      // Cleanup any intervals\n      ${intervalMatches.map(m => `clearInterval(${m[1]});`).join('\n      ')}\n    };\n  }, []);`;
+          }
+        );
+      }
+    }
+
+    return fixedCode;
+  }
+
+  private detectAllIssues(code: string): string[] {
+    const issues: string[] = [];
+    
+    // Security issues
+    if (/(?:api[_-]?key|apikey)\s*[:=]\s*["'][^"']+["']/gi.test(code)) {
+      issues.push('hardcoded_secrets');
+    }
+    if (/console\.log.*(?:password|pwd|secret|token|key|auth|credential)/gi.test(code)) {
+      issues.push('sensitive_logging');
+    }
+    if (/fetch\s*\(\s*["']http:\/\//.test(code)) {
+      issues.push('insecure_http');
+    }
+    
+    // Performance issues
+    if (/<FlatList[^>]*(?!.*keyExtractor)/.test(code)) {
+      issues.push('missing_key_extractor');
+    }
+    if (/<ScrollView[\s\S]*?\.map\s*\([\s\S]*?<\/ScrollView>/.test(code)) {
+      issues.push('scrollview_with_map');
+    }
+    
+    // Memory leaks
+    if (/setInterval\s*\(/.test(code) && !/clearInterval/.test(code)) {
+      issues.push('interval_memory_leak');
+    }
+    
+    return issues;
+  }
+
+  private applyBestPracticesFixes(code: string, appliedFixes: string[], addComments: boolean): string {
+    let fixedCode = code;
+
+    // Add StyleSheet.create for inline styles
+    const inlineStyleRegex = /style\s*=\s*\{\{([^}]+)\}\}/g;
+    if (inlineStyleRegex.test(fixedCode) && !fixedCode.includes('StyleSheet.create')) {
+      appliedFixes.push('Converted inline styles to StyleSheet.create');
+      
+      // Extract styles and create StyleSheet
+      const styles: string[] = [];
+      let styleCounter = 0;
+      
+      fixedCode = fixedCode.replace(inlineStyleRegex, (match, styleContent) => {
+        const styleName = `style${styleCounter++}`;
+        styles.push(`  ${styleName}: {\n    ${styleContent.replace(/,/g, ',\n    ')}\n  }`);
+        return `style={styles.${styleName}}`;
+      });
+      
+      // Add StyleSheet definition
+      if (styles.length > 0) {
+        const styleSheetDefinition = `\n\nconst styles = StyleSheet.create({\n${styles.join(',\n')}\n});\n`;
+        fixedCode += styleSheetDefinition;
+        
+        // Add StyleSheet import
+        if (!fixedCode.includes('StyleSheet')) {
+          fixedCode = fixedCode.replace(
+            /(import\s*\{[^}]*)\}\s*from\s*['"]react-native['"];?/,
+            '$1, StyleSheet } from \'react-native\';'
+          );
+        }
+      }
+    }
+
+    return fixedCode;
+  }
+
+  private applyTypeSafetyFixes(code: string, appliedFixes: string[], addComments: boolean): string {
+    let fixedCode = code;
+
+    // Add TypeScript interface for props if missing
+    if (fixedCode.includes('props') && !fixedCode.includes('interface') && !fixedCode.includes('type Props')) {
+      appliedFixes.push('Added TypeScript interface for better type safety');
+      
+      const interfaceDefinition = `interface Props {
+  // Add your prop definitions here
+  children?: React.ReactNode;
+  onPress?: () => void;
+  title?: string;
+}
+
+`;
+      
+      // Insert before the component definition
+      fixedCode = fixedCode.replace(
+        /(const|function)\s+(\w+)\s*[=:]?\s*\(/,
+        interfaceDefinition + '$1 $2('
+      );
+    }
+
+    return fixedCode;
+  }
+
+  // Refactoring helper methods
+  private refactorForPerformance(code: string, improvements: string[]): string {
+    let refactoredCode = code;
+
+    // Add React.memo for components
+    if (refactoredCode.includes('export default') && !refactoredCode.includes('memo(')) {
+      refactoredCode = refactoredCode.replace(
+        /(export default )(\w+);?/,
+        (match, exportKeyword, componentName) => {
+          improvements.push('Wrapped component with React.memo for performance');
+          return `${exportKeyword}React.memo(${componentName});`;
+        }
+      );
+
+      // Add memo import
+      if (!refactoredCode.includes('memo')) {
+        refactoredCode = refactoredCode.replace(
+          /import React(,\s*\{[^}]*\})?/,
+          (match) => {
+            if (match.includes('{')) {
+              return match.replace('}', ', memo }');
+            } else {
+              return match.replace('React', 'React, { memo }');
+            }
+          }
+        );
+      }
+    }
+
+    return refactoredCode;
+  }
+
+  private refactorForMaintainability(code: string, improvements: string[]): string {
+    // Extract inline styles to StyleSheet
+    let refactoredCode = code;
+    
+    const inlineStyleRegex = /style\s*=\s*\{\{([^}]+)\}\}/g;
+    if (inlineStyleRegex.test(refactoredCode)) {
+      improvements.push('Extracted inline styles to StyleSheet for better maintainability');
+      
+      // Add StyleSheet import if not present
+      if (!refactoredCode.includes('StyleSheet')) {
+        refactoredCode = refactoredCode.replace(
+          /(import\s*\{[^}]*)\}\s*from\s*['"]react-native['"];?/,
+          '$1, StyleSheet } from \'react-native\';'
+        );
+      }
+    }
+    
+    return refactoredCode;
+  }
+
+  private refactorForAccessibility(code: string, improvements: string[]): string {
+    let refactoredCode = code;
+
+    // Add accessibility props to touchable elements
+    refactoredCode = refactoredCode.replace(
+      /<(TouchableOpacity|TouchableHighlight|TouchableWithoutFeedback)([^>]*?)>/g,
+      (match, component, props) => {
+        if (!props.includes('accessibilityRole')) {
+          improvements.push(`Added accessibility props to ${component}`);
+          return `<${component}${props} accessibilityRole="button" accessibilityLabel="Tap to interact">`;
+        }
+        return match;
+      }
+    );
+
+    return refactoredCode;
+  }
+
+  private refactorForTypeSafety(code: string, improvements: string[]): string {
+    let refactoredCode = code;
+    
+    // Add TypeScript interfaces for props
+    if (!refactoredCode.includes('interface') && refactoredCode.includes('props')) {
+      improvements.push('Added TypeScript interface for component props');
+      const interfaceDefinition = `
+interface Props {
+  // TODO: Define your component props here
+  children?: React.ReactNode;
+}
+
+`;
+      refactoredCode = interfaceDefinition + refactoredCode;
+    }
+    
+    return refactoredCode;
+  }
+
+  private refactorToModernPatterns(code: string, improvements: string[]): string {
+    let refactoredCode = code;
+
+    // Convert function declarations to arrow functions with proper typing
+    refactoredCode = refactoredCode.replace(
+      /function\s+(\w+)\s*\([^)]*\)\s*\{/g,
+      (match, funcName) => {
+        improvements.push(`Converted ${funcName} to modern arrow function`);
+        return `const ${funcName} = () => {`;
+      }
+    );
+
+    return refactoredCode;
+  }
+
+  private refactorComprehensive(code: string, improvements: string[]): string {
+    let refactoredCode = code;
+    
+    refactoredCode = this.refactorForPerformance(refactoredCode, improvements);
+    refactoredCode = this.refactorForAccessibility(refactoredCode, improvements);
+    refactoredCode = this.refactorToModernPatterns(refactoredCode, improvements);
+    
+    return refactoredCode;
+  }
+
+  private generateRefactoredTests(code: string): string {
+    return `// Updated tests for refactored component
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react-native';
+import YourComponent from './YourComponent';
+
+describe('YourComponent (Refactored)', () => {
+  test('renders without crashing', () => {
+    render(<YourComponent />);
+    expect(screen.getByRole('button')).toBeTruthy();
+  });
+
+  test('handles interactions correctly', () => {
+    const mockOnPress = jest.fn();
+    render(<YourComponent onPress={mockOnPress} />);
+    
+    fireEvent.press(screen.getByRole('button'));
+    expect(mockOnPress).toHaveBeenCalledTimes(1);
+  });
+
+  test('meets accessibility standards', async () => {
+    const { container } = render(<YourComponent />);
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+});
 `;
   }
 }

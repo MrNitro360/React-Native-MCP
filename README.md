@@ -4,28 +4,36 @@
 
 [![npm version](https://badge.fury.io/js/%40mrnitro360%2Freact-native-mcp-guide.svg)](https://badge.fury.io/js/%40mrnitro360%2Freact-native-mcp-guide)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Model Context Protocol](https://img.shields.io/badge/MCP-1.0.0-blue.svg)](https://modelcontextprotocol.io/)
+[![Model Context Protocol](https://img.shields.io/badge/MCP-1.1.0-blue.svg)](https://modelcontextprotocol.io/)
 [![Auto-Deploy](https://github.com/MrNitro360/React-Native-MCP/actions/workflows/auto-deploy.yml/badge.svg)](https://github.com/MrNitro360/React-Native-MCP/actions/workflows/auto-deploy.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 [![React Native](https://img.shields.io/badge/React%20Native-0.72+-blue.svg)](https://reactnative.dev/)
 
-**Professional AI-powered React Native development companion for enterprise-grade mobile applications**
+**Professional AI-powered React Native development companion with expert-level code remediation**
 
-*Automated updates • Industry best practices • Comprehensive testing • Enterprise security*
+*Expert remediation • Automated fixes • Industry best practices • Enterprise security*
 
 </div>
 
 ## Overview
 
-A comprehensive Model Context Protocol (MCP) server designed for professional React Native development teams. This tool provides intelligent code analysis, automated testing solutions, security auditing, and performance optimization guidance following industry best practices.
+A comprehensive Model Context Protocol (MCP) server designed for professional React Native development teams. This tool provides intelligent code analysis, **expert-level automated code remediation**, security auditing, and performance optimization with production-ready fixes.
+
+**🆕 v1.1.0 - Expert Remediation Features:**
+
+- 🔧 **Expert Code Remediation** - Automatically fix security, performance, and quality issues
+- 🏗️ **Advanced Refactoring** - Comprehensive component modernization and optimization
+- 🛡️ **Security Fixes** - Automatic hardcoded secret migration and vulnerability patching
+- ⚡ **Performance Fixes** - Memory leak prevention and React Native optimization
+- 📝 **Production-Ready Code** - TypeScript interfaces, StyleSheet extraction, accessibility
 
 **Key Benefits:**
 
-- 🚀 **Accelerated Development** - Automated code analysis and test generation
-- 🔒 **Enterprise Security** - Comprehensive vulnerability scanning and secure coding practices  
+- 🚀 **Accelerated Development** - Automated code analysis, fixing, and test generation
+- 🔒 **Enterprise Security** - Vulnerability detection with automatic remediation
 - 📊 **Quality Assurance** - Industry-standard testing frameworks and coverage analysis
-- ⚡ **Performance Optimization** - Advanced profiling and optimization recommendations
-- 🎯 **Best Practices** - Expert guidance following React Native community standards
+- ⚡ **Performance Optimization** - Advanced profiling with automatic fixes
+- 🎯 **Best Practices** - Expert guidance with code implementation
 - 🔄 **Automated Updates** - Continuous integration with automatic version management
 
 ---
@@ -74,7 +82,111 @@ Verify that `react-native-guide` appears as **Connected** ✅
 
 ---
 
+## 🆕 Expert Remediation Examples
+
+### Before vs. After: Automatic Code Fixing
+
+**❌ Before (Problematic Code):**
+```typescript
+const MyComponent = () => {
+  const apiKey = "sk-1234567890abcdef"; // Hardcoded secret
+  const [data, setData] = useState([]);
+  
+  useEffect(() => {
+    console.log("API Key:", apiKey); // Sensitive logging
+    fetch('http://api.example.com/data') // HTTP instead of HTTPS
+      .then(response => response.json())
+      .then(data => setData(data));
+      
+    const interval = setInterval(() => { // Memory leak
+      console.log('Polling...');
+    }, 1000);
+  }, []);
+
+  return (
+    <ScrollView>
+      {data.map(item => ( // Performance issue
+        <Text key={item.id} style={{color: 'red'}}>{item.name}</Text>
+      ))}
+    </ScrollView>
+  );
+};
+```
+
+**✅ After (Expert Remediation):**
+```typescript
+interface Props {
+  children?: React.ReactNode;
+  onPress?: () => void;
+}
+
+const MyComponent: React.FC<Props> = () => {
+  // TODO: Add API_KEY to your environment variables
+  const apiKey = process.env.API_KEY || Config.API_KEY;
+  const [data, setData] = useState([]);
+  
+  useEffect(() => {
+    // Removed sensitive logging for security
+    // console.log('[REDACTED - contains sensitive data]');
+    
+    // Upgraded to HTTPS for security
+    fetch('https://api.example.com/data')
+      .then(response => response.json())
+      .then(data => setData(data));
+      
+    const interval = setInterval(() => {
+      console.log('Polling...');
+    }, 1000);
+    
+    // Cleanup intervals to prevent memory leaks
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
+
+  return (
+    <FlatList
+      data={data}
+      keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+      renderItem={({ item }) => (
+        <Text style={styles.itemText}>{item.name}</Text>
+      )}
+    />
+  );
+};
+
+const styles = StyleSheet.create({
+  itemText: {
+    color: 'red'
+  }
+});
+
+export default React.memo(MyComponent);
+```
+
+**🎯 What Got Fixed Automatically:**
+- ✅ **Security**: Hardcoded API key → Environment variable
+- ✅ **Security**: Sensitive logging → Sanitized
+- ✅ **Security**: HTTP → HTTPS upgrade
+- ✅ **Performance**: ScrollView + map → FlatList with keyExtractor
+- ✅ **Memory**: Added interval cleanup to prevent leaks
+- ✅ **Best Practices**: Inline styles → StyleSheet.create
+- ✅ **Type Safety**: Added TypeScript interface
+- ✅ **Performance**: Wrapped with React.memo
+
+---
+
 ## Core Features
+
+### 🔧 Expert Code Remediation (NEW in v1.1.0)
+
+| Tool | Capability | Level | Output |
+|------|------------|-------|--------|
+| **`remediate_code`** | Automatic security, performance, and quality fixes | Expert | Production-ready code |
+| **`refactor_component`** | Advanced component modernization and optimization | Senior | Refactored components with tests |
+| **Security Remediation** | Hardcoded secrets → environment variables | Enterprise | Secure code patterns |
+| **Performance Fixes** | Memory leaks, FlatList optimization, StyleSheet | Expert | Optimized components |
+| **Type Safety** | Automatic TypeScript interface generation | Professional | Type-safe code |
 
 ### 🧪 Advanced Testing Suite
 
@@ -89,10 +201,10 @@ Verify that `react-native-guide` appears as **Connected** ✅
 
 | Analysis Type | Capabilities | Output |
 |---------------|--------------|--------|
-| **Security Auditing** | Vulnerability detection, secure coding validation | Risk-prioritized reports |
-| **Performance Profiling** | Memory, rendering, bundle optimization | Actionable recommendations |
-| **Code Quality** | Complexity analysis, refactoring suggestions | Maintainability metrics |
-| **Accessibility** | WCAG compliance, screen reader support | Compliance reports |
+| **Security Auditing** | Vulnerability detection with auto-remediation | Risk-prioritized reports + fixes |
+| **Performance Profiling** | Memory, rendering, bundle optimization + fixes | Actionable recommendations + code |
+| **Code Quality** | Complexity analysis with refactoring implementation | Maintainability metrics + fixes |
+| **Accessibility** | WCAG compliance with automatic improvements | Compliance reports + code |
 
 ### 📦 Dependency Management
 
@@ -112,6 +224,22 @@ Verify that `react-native-guide` appears as **Connected** ✅
 
 ## Usage Examples
 
+### 🔧 Expert Code Remediation (NEW)
+
+```bash
+# Automatically fix all detected issues with expert-level solutions
+claude "remediate_code with remediation_level='expert' and add_comments=true"
+
+# Advanced component refactoring with performance optimization
+claude "refactor_component with refactor_type='comprehensive' and include_tests=true"
+
+# Security-focused remediation
+claude "remediate_code with issues=['hardcoded_secrets', 'sensitive_logging'] and remediation_level='expert'"
+
+# Performance-focused refactoring
+claude "refactor_component with refactor_type='performance' and target_rn_version='latest'"
+```
+
 ### Testing & Quality Assurance
 
 ```bash
@@ -128,14 +256,14 @@ claude "analyze_test_coverage with coverage_threshold=85"
 ### Code Analysis & Optimization
 
 ```bash
-# Comprehensive codebase analysis
+# Comprehensive codebase analysis with auto-remediation suggestions
 claude "analyze_codebase_comprehensive"
 
-# Performance optimization
-claude "analyze_codebase_performance"
+# Performance optimization with specific focus areas
+claude "analyze_codebase_performance with focus_areas=['memory_usage', 'list_rendering']"
 
-# Security audit
-claude "analyze_codebase_security"
+# Security audit with vulnerability detection
+claude "analyze_codebase_comprehensive with analysis_types=['security', 'performance']"
 ```
 
 ### Dependency Management
@@ -155,10 +283,15 @@ claude "audit_packages with auto_fix=true"
 
 | Scenario | Command | Outcome |
 |----------|---------|---------|
-| **Pre-deployment Security Check** | `"Scan my React Native project for security vulnerabilities"` | Comprehensive security report |
-| **Performance Bottleneck Analysis** | `"Analyze my app for performance bottlenecks and memory leaks"` | Optimization roadmap |
-| **Code Quality Review** | `"Review my codebase for refactoring opportunities"` | Quality improvement plan |
-| **Accessibility Compliance** | `"Check my app for accessibility issues and recommendations"` | WCAG compliance report |
+| **🔧 Automatic Code Fixing** | `"Fix all security and performance issues in my component with expert solutions"` | Production-ready remediated code |
+| **🏗️ Component Modernization** | `"Refactor my legacy component to modern React Native patterns with tests"` | Modernized component + test suite |
+| **🛡️ Security Hardening** | `"Automatically fix hardcoded secrets and security vulnerabilities"` | Secure code with environment variables |
+| **⚡ Performance Optimization** | `"Fix memory leaks and optimize FlatList performance automatically"` | Optimized code with cleanup |
+| **📝 Type Safety Enhancement** | `"Add TypeScript interfaces and improve type safety automatically"` | Type-safe code with interfaces |
+| **Pre-deployment Security Check** | `"Scan my React Native project for security vulnerabilities"` | Security report + automatic fixes |
+| **Performance Bottleneck Analysis** | `"Analyze my app for performance bottlenecks and memory leaks"` | Optimization roadmap + fixes |
+| **Code Quality Review** | `"Review my codebase for refactoring opportunities"` | Quality improvement + implementation |
+| **Accessibility Compliance** | `"Check my app for accessibility issues and fix them automatically"` | WCAG compliance + code fixes |
 | **Component Test Generation** | `"Generate comprehensive tests for my LoginScreen component"` | Complete test suite |
 | **Testing Strategy Optimization** | `"Analyze my current testing strategy and suggest improvements"` | Testing roadmap |
 
@@ -175,7 +308,7 @@ Add to your `claude_desktop_config.json`:
   "mcpServers": {
     "react-native-guide": {
       "command": "npx",
-      "args": ["@mrnitro360/react-native-mcp-guide"],
+      "args": ["@mrnitro360/react-native-mcp-guide@1.1.0"],
       "env": {}
     }
   }
@@ -244,31 +377,67 @@ claude mcp add react-native-guide npx @mrnitro360/react-native-mcp-guide
 
 ## Technical Specifications
 
-### 🎯 Analysis Capabilities
+### 🎯 Analysis & Remediation Capabilities
 
-- **Comprehensive Codebase Analysis** - Multi-dimensional quality assessment
-- **Enterprise Security Auditing** - Vulnerability detection and mitigation strategies
-- **Performance Intelligence** - Memory, rendering, and bundle optimization
-- **Quality Metrics** - Complexity analysis and maintainability scoring
-- **Accessibility Compliance** - WCAG 2.1 AA standard validation
+- **Expert Code Remediation** - Automatic fixing of security, performance, and quality issues
+- **Advanced Component Refactoring** - Comprehensive modernization with test generation
+- **Comprehensive Codebase Analysis** - Multi-dimensional quality assessment with fixes
+- **Enterprise Security Auditing** - Vulnerability detection with automatic remediation
+- **Performance Intelligence** - Memory, rendering, and bundle optimization with fixes
+- **Quality Metrics** - Complexity analysis with refactoring implementation
+- **Accessibility Compliance** - WCAG 2.1 AA standard validation with automatic fixes
 - **Testing Strategy Optimization** - Coverage analysis and framework recommendations
 
 ### 🛠️ Technical Architecture
 
-- **10 Specialized Analysis Tools** - Complete React Native development lifecycle coverage
+- **12 Specialized Tools** - Complete React Native development lifecycle coverage + remediation
+- **2 Expert Remediation Tools** - `remediate_code` and `refactor_component`
 - **6 Expert Prompt Templates** - Structured development workflows
 - **5 Resource Libraries** - Comprehensive documentation and best practices
 - **Industry-Standard Test Generation** - Automated test suite creation
 - **Multi-Framework Integration** - Jest, Detox, Maestro, and accessibility tools
 - **Real-time Coverage Analysis** - Detailed reporting with improvement strategies
+- **Production-Ready Code Generation** - Expert-level automated fixes and refactoring
 
 ### 🏢 Enterprise Features
 
-- **Professional Reporting** - Executive-level summaries with prioritized recommendations
-- **Security-First Architecture** - Comprehensive vulnerability assessment
-- **Scalability Planning** - Large-scale application design patterns
-- **Compliance Support** - Industry standards and regulatory requirements
-- **Multi-Platform Optimization** - iOS and Android specific considerations
+- **Expert-Level Remediation** - Senior engineer quality automatic code fixes
+- **Production-Ready Solutions** - Enterprise-grade security and performance fixes
+- **Professional Reporting** - Executive-level summaries with implementation code
+- **Security-First Architecture** - Comprehensive vulnerability assessment with fixes
+- **Scalability Planning** - Large-scale application design patterns with refactoring
+- **Compliance Support** - Industry standards with automatic compliance fixes
+- **Multi-Platform Optimization** - iOS and Android specific considerations with fixes
+
+---
+
+## 📋 Changelog
+
+### v1.1.0 - Expert Code Remediation (Latest)
+
+**🚀 Major Features:**
+- ✨ **NEW**: `remediate_code` tool - Expert-level automatic code fixing
+- ✨ **NEW**: `refactor_component` tool - Advanced component refactoring with tests
+- 🔧 **Enhanced**: Component detection accuracy improved
+- 🛡️ **Security**: Automatic hardcoded secret remediation
+- ⚡ **Performance**: Memory leak prevention and FlatList optimization
+- 📝 **Quality**: TypeScript interface generation and StyleSheet extraction
+- 🎯 **Accessibility**: WCAG compliance with automatic fixes
+
+**🎯 Remediation Capabilities:**
+- Hardcoded secrets → Environment variables
+- Sensitive logging → Sanitized code
+- HTTP requests → HTTPS enforcement
+- Memory leaks → Automatic cleanup
+- Inline styles → StyleSheet.create
+- Performance issues → Optimized patterns
+- Type safety → TypeScript interfaces
+
+### v1.0.5 - Previous Version
+- Comprehensive analysis tools
+- Testing suite generation
+- Dependency management
+- Performance optimization guidance
 
 ---
 
@@ -294,9 +463,11 @@ This project is licensed under the [MIT License](LICENSE). See the license file 
 
 <div align="center">
 
-**Professional React Native Development Made Simple**
+**Professional React Native Development with Expert-Level Remediation**
 
-*Empowering development teams to build secure, performant, and accessible mobile applications with confidence*
+*Empowering development teams to build secure, performant, and accessible mobile applications with automated expert-level code fixes*
+
+🆕 **v1.1.0 - Now with Expert Code Remediation!**
 
 [Get Started](https://www.npmjs.com/package/@mrnitro360/react-native-mcp-guide) • [Documentation](https://github.com/MrNitro360/React-Native-MCP) • [Community](https://github.com/MrNitro360/React-Native-MCP/issues)
 

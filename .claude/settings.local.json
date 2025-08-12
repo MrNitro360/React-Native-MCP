@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "mcp__react-native-guide__analyze_component"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

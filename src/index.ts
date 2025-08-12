@@ -8,8 +8,8 @@ import { ReactNativeResources } from "./resources/index.js";
 import { ReactNativePrompts } from "./prompts/index.js";
 
 /**
- * React Native MCP Server - v1.0.1
- * Enhanced with automatic npm publishing via GitHub Actions
+ * React Native MCP Server - v1.1.0
+ * Enhanced with expert-level code remediation capabilities
  * React Native MCP Server
  * 
  * This server provides React Native development guidance, best practices,
@@ -19,7 +19,7 @@ import { ReactNativePrompts } from "./prompts/index.js";
 // Create the MCP server instance
 const server = new McpServer({
   name: "react-native-mcp-server",
-  version: "1.0.0"
+  version: "1.1.0"
 });
 
 // Initialize tools, resources, and prompts
