@@ -11,10 +11,11 @@ dist/
 .env.production
 
 # IDE files
-# Keep .vscode ignored except allow tasks.json for shared tasks
-.vscode/*
-!.vscode/tasks.json
+.vscode/
 .idea/
+
+# Claude specific files
+.claude/
 
 
 # OS files
